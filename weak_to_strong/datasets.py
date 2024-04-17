@@ -160,6 +160,41 @@ register_dataset(
     ),
 )
 
+VALID_DATASETS: list[str] = list(_REGISTRY.keys())
+
+"""
+def format_mctaco(ex, rng):
+    sentence = ex['sentence']
+    question = ex['question']
+    answer = ex['answer']
+    label = int(ex['label'] == 'yes') # Convert 'yes'/'no' to binary label (1/0)
+    txt = f"Context: {sentence}\nQuestion: {question}\nAnswer: {answer}"
+    return dict(txt=txt, hard_label=label)
+
+register_dataset(
+    "mc_taco",
+    DatasetConfig(
+        loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
+    ),
+)
+
+from datasets import disable_caching
+disable_caching()
+
+from weak_to_strong.datasets import load_dataset, VALID_DATASETS
+import numpy as np
+
+ds_name = "boolq"
+print(VALID_DATASETS)
+
+ds = load_dataset(ds_name, split_sizes=dict(train=500, test=10))
+train = list(ds['train'])
+test = list(ds['test'])
+print(test[0])
+print(np.mean([x['hard_label'] for x in train]))
+
+
+
 
 def format_openbookQA(ex, rng):
     id = ex["id"]
@@ -211,37 +246,4 @@ register_dataset(
 )
 
 
-VALID_DATASETS: list[str] = list(_REGISTRY.keys())
-
-
-"""
-def format_mctaco(ex, rng):
-    sentence = ex['sentence']
-    question = ex['question']
-    answer = ex['answer']
-    label = int(ex['label'] == 'yes') # Convert 'yes'/'no' to binary label (1/0)
-    txt = f"Context: {sentence}\nQuestion: {question}\nAnswer: {answer}"
-    return dict(txt=txt, hard_label=label)
-
-register_dataset(
-    "mc_taco",
-    DatasetConfig(
-        loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
-    ),
-)
-
-from datasets import disable_caching
-disable_caching()
-
-from weak_to_strong.datasets import load_dataset, VALID_DATASETS
-import numpy as np
-
-ds_name = "boolq"
-print(VALID_DATASETS)
-
-ds = load_dataset(ds_name, split_sizes=dict(train=500, test=10))
-train = list(ds['train'])
-test = list(ds['test'])
-print(test[0])
-print(np.mean([x['hard_label'] for x in train]))
 """
