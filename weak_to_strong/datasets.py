@@ -174,7 +174,7 @@ def format_openbookQA(ex, rng):
     correct_answer_text = choices_text[correct_answer_index]
    
     txt = f"Question: {question_stem}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
-    return dict(txt=txt, hard_label=hard_label)
+    return dict(txt=txt, hard_label=1)
 
 register_dataset(
     "openbookqa",
