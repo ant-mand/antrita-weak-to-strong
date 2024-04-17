@@ -153,13 +153,13 @@ def format_boolq(ex, rng):
     txt = f"Passage: {ex['passage']}\nQuestion: {ex['question']}"
     return dict(txt=txt, hard_label=hard_label)
 
-
 register_dataset(
     "boolq",
     DatasetConfig(
         loader=hf_loader("boolq", split_names=dict(test="validation")), formatter=format_boolq
     ),
 )
+
 
 def format_openbookQA(ex, rng):
     id = ex["id"]
@@ -183,6 +183,7 @@ register_dataset(
     ),
 )
 
+
 def format_ethics_justice(ex, rng):
     txt = ex['text']
     hard_label = int(ex['label'])  # 1 or 0
@@ -194,6 +195,7 @@ register_dataset(
         loader=hf_loader("hendrycks/ethics", "justice"), formatter=format_ethics_justice
     ),
 )
+
 
 def format_paws(ex, rng):
     txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
@@ -207,6 +209,7 @@ register_dataset(
         formatter=format_paws
     ),
 )
+
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
