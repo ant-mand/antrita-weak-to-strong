@@ -170,9 +170,9 @@ def format_mctaco(ex, rng):
     return dict(txt=txt, hard_label=label)
 
 register_dataset(
-    "mctaco",
+    "mc_taco",
     DatasetConfig(
-        loader=hf_loader("mctaco", split_names=dict(test="validation")), formatter=format_mctaco
+        loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
     ),
 )
 
