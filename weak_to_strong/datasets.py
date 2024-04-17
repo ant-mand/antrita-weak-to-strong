@@ -188,7 +188,6 @@ def format_ethics_justice(ex, rng):
     hard_label = int(ex['label'])  # 1 or 0
     return dict(txt=txt, hard_label=hard_label)
 
-Validation:
 register_dataset(
     "ethics_justice",
     DatasetConfig(
