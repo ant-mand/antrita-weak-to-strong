@@ -167,24 +167,50 @@ def format_openbookQA(ex, rng):
     choices_text = ex['choices']['text']
     choices_labels = ex['choices']['label']
     correct_label = ex['answerKey']
-    
+
     choices_formatted = ' '.join([f"{label}: {text}" for label, text in zip(choices_labels, choices_text)])
     
     correct_answer_index = choices_labels.index(correct_label)
     correct_answer_text = choices_text[correct_answer_index]
    
     txt = f"Question: {question_stem}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
-    return dict(txt=txt, hard_label=1)
+    return dict(txt=txt, hard_label=1)   # have to change how hard label is coded. 
 
 register_dataset(
     "openbookqa",
     DatasetConfig(
-        loader=hf_loader("openbookqa", split_names=dict(test="validation")), formatter=format_openbookQA
+        loader=hf_loader("allenai/openbookqa", "main", split_names=dict(test="validation")), formatter=format_openbookQA
     ),
 )
 
+def format_ethics_justice(ex, rng):
+    txt = ex['text']
+    hard_label = int(ex['label'])  # 1 or 0
+    return dict(txt=txt, hard_label=hard_label)
+
+Validation:
+register_dataset(
+    "ethics_justice",
+    DatasetConfig(
+        loader=hf_loader("hendrycks/ethics", "justice"), formatter=format_ethics_justice
+    ),
+)
+
+def format_paws(ex, rng):
+    return dict(txt=txt, hard_label=hard_label)
+
+register_dataset(
+    "paws",
+    DatasetConfig(
+        loader=hf_loader("paws", split_names=dict(test="validation")), formatter=format_paws
+    ),
+)
+
+
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
+
+"""
 def format_mctaco(ex, rng):
     sentence = ex['sentence']
     question = ex['question']
@@ -200,7 +226,6 @@ register_dataset(
     ),
 )
 
-"""
 from datasets import disable_caching
 disable_caching()
 
