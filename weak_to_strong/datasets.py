@@ -183,8 +183,7 @@ register_dataset(
     ),
 )
 
-"""
-COMMENTING OUT FOR NOW. RUNNING INTO A SPLIT ERROR.
+VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
 def format_mctaco(ex, rng):
     sentence = ex['sentence']
@@ -200,10 +199,6 @@ register_dataset(
         loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
     ),
 )
-
-""""
-
-VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
 """
 from datasets import disable_caching
