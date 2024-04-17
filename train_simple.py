@@ -26,7 +26,7 @@ MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2-medium",
         default_lr=5e-5,
-        eval_batch_size=32,
+        eval_batch_size=10,
     ),
     ModelConfig(
         name="gpt2-large",
@@ -142,7 +142,7 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 32,
+    batch_size: int = 10,
     max_ctx: int = 1024,
     ds_name: str = "boolq",
     loss: str = "xent",
