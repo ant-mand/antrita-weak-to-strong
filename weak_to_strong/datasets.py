@@ -172,7 +172,7 @@ def format_mctaco(ex, rng):
 register_dataset(
     "mctaco",
     DatasetConfig(
-        loader=hf_loader("mctaco", split_names=dict(test="validation")), formatter=format_mctaco),
+        loader=hf_loader("mctaco", split_names=dict(test="validation")), formatter=format_mctaco
     ),
 )
 
