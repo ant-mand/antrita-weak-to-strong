@@ -173,7 +173,7 @@ def format_openbookQA(ex, rng):
     correct_answer_index = choices_labels.index(correct_label)
     correct_answer_text = choices_text[correct_answer_index]
    
-    txt = f"Question: {question}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
+    txt = f"Question: {question_stem}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
     return dict(txt=txt, hard_label=label)
 
 register_dataset(
