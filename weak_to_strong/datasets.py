@@ -161,6 +161,19 @@ register_dataset(
     ),
 )
 
+def format_mctaco(ex, rng):
+sentence = ex['sentence']
+question = ex['question']
+answer = ex['answer']
+label = int(ex['label'] == 'yes') # Convert 'yes'/'no' to binary label (1/0)
+txt = f"Context: {sentence}\nQuestion: {question}\nAnswer: {answer}"
+return dict(txt=txt, hard_label=label)
+
+register_dataset(
+"mctaco",
+DatasetConfig(loader=hf_loader("mctaco", split_names=dict(test="validation")), formatter=format_mctaco),
+    ),
+)
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
