@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import random
 import subprocess
@@ -112,6 +113,7 @@ MODELS_DICT: Dict[str, ModelConfig] = {
     model_config.name: model_config for model_config in MODEL_CONFIGS
 }
 
+new_lr = 5e-5 * math.sqrt(10 / 32)
 
 loss_dict = {
     "logconf": logconf_loss_fn(),
@@ -149,7 +151,7 @@ def main(
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
-    lr: Optional[float] = None,
+    lr: Optional[float] = new_lr,
     optim: Optional[str] = None,
     epochs: int = 2,
     force_retrain: bool = False,
