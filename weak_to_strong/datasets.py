@@ -161,6 +161,31 @@ register_dataset(
     ),
 )
 
+def format_openbookQA(ex, rng):
+    id = ex["id"]
+    question_stem = ex["question_stem"]
+    choices_text = ex['choices']['text']
+    choices_labels = ex['choices']['label']
+    correct_label = ex['answerKey']
+    
+    choices_formatted = ' '.join([f"{label}: {text}" for label, text in zip(choices_labels, choices_text)])
+    
+    correct_answer_index = choices_labels.index(correct_label)
+    correct_answer_text = choices_text[correct_answer_index]
+   
+    txt = f"Question: {question}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
+    return dict(txt=txt, hard_label=label)
+
+register_dataset(
+    "openbookqa",
+    DatasetConfig(
+        loader=hf_loader("openbookqa", split_names=dict(test="validation")), formatter=format_openbookQA
+    ),
+)
+
+"""
+COMMENTING OUT FOR NOW. RUNNING INTO A SPLIT ERROR.
+
 def format_mctaco(ex, rng):
     sentence = ex['sentence']
     question = ex['question']
@@ -175,6 +200,8 @@ register_dataset(
         loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
     ),
 )
+
+""""
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
