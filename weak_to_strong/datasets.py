@@ -160,7 +160,59 @@ register_dataset(
     ),
 )
 
+
+def format_openbookQA(ex, rng):
+    id = ex["id"]
+    question_stem = ex["question_stem"]
+    choices_text = ex['choices']['text']
+    choices_labels = ex['choices']['label']
+    correct_label = ex['answerKey']
+
+    choices_formatted = ' '.join([f"{label}: {text}" for label, text in zip(choices_labels, choices_text)])
+    
+    correct_answer_index = choices_labels.index(correct_label)
+    correct_answer_text = choices_text[correct_answer_index]
+   
+    txt = f"Question: {question_stem}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
+    return dict(txt=txt, hard_label=1)   # have to change how hard label is coded. 
+
+register_dataset(
+    "openbookqa",
+    DatasetConfig(
+        loader=hf_loader("allenai/openbookqa", "main", split_names=dict(test="validation")), formatter=format_openbookQA
+    ),
+)
+
+
+def format_ethics_justice(ex, rng):
+    txt = ex['text']
+    hard_label = int(ex['label'])  # 1 or 0
+    return dict(txt=txt, hard_label=hard_label)
+
+register_dataset(
+    "ethics_justice",
+    DatasetConfig(
+        loader=hf_loader("hendrycks/ethics", "justice"), formatter=format_ethics_justice
+    ),
+)
+
+
+def format_paws(ex, rng):
+    txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
+    hard_label = int(ex['label'])
+    return dict(txt=txt, hard_label=hard_label)
+
+register_dataset(
+    "paws_labeled_final",  # Unique name for the dataset registration.
+    DatasetConfig(
+        loader=hf_loader("paws", "labeled_final", split_names=dict(test="validation")), 
+        formatter=format_paws
+    ),
+)
+
+
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
+
 
 """
 def format_mctaco(ex, rng):
@@ -192,68 +244,4 @@ train = list(ds['train'])
 test = list(ds['test'])
 print(test[0])
 print(np.mean([x['hard_label'] for x in train]))
-
-
-
-
-def format_openbookQA(ex, rng):
-    id = ex["id"]
-    question_stem = ex["question_stem"]
-    choices_text = ex['choices']['text']
-    choices_labels = ex['choices']['label']
-    correct_label = ex['answerKey']
-
-    choices_formatted = ' '.join([f"{label}: {text}" for label, text in zip(choices_labels, choices_text)])
-    
-    correct_answer_index = choices_labels.index(correct_label)
-    correct_answer_text = choices_text[correct_answer_index]
-   
-    txt = f"Question: {question_stem}\nChoices: {choices_formatted}\nCorrect Answer: {correct_answer_text}"
-    return dict(txt=txt, hard_label=1)   # have to change how hard label is coded. 
-
-register_dataset(
-    "openbookqa",
-    DatasetConfig(
-        loader=hf_loader("allenai/openbookqa", "main", split_names=dict(test="validation")), formatter=format_openbookQA
-    ),
-)
-
-
-def format_ethics_justice(ex, rng):
-    # The text itself is the input
-    txt = ex['text']
-    # Label is already binary (0 or 1), so we can use it directly as the hard_label
-    hard_label = int(ex['label'])
-    return dict(txt=txt, hard_label=hard_label)
-
-# Register the dataset
-register_dataset(
-    "ethics_justice",
-    DatasetConfig(
-        loader=hf_loader("ethics", "justice"),  # Specify the correct path and subset name
-        formatter=format_ethics_justice
-    ),
-)
-
-def format_paws(ex, rng):
-    txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
-    hard_label = int(ex['label'])
-    return dict(txt=txt, hard_label=hard_label)
-
-register_dataset(
-    "paws_labeled_final",  # Unique name for the dataset registration.
-    DatasetConfig(
-        loader=hf_loader("paws", "labeled_final", split_names=dict(test="validation")), 
-        formatter=format_paws
-    ),
-)
-
-def format_glue_cola(ex, rng):
-    return dict(txt=ex['sentence'], hard_label=ex['label'])
-
-register_dataset(
-    "glue_cola", 
-    DatasetConfig(loader=hf_loader("glue", "cola"), formatter=format_glue_cola),
-)
-
 """
