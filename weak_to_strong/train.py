@@ -195,6 +195,7 @@ def train_and_save_model(
     custom_kwargs = model_config.custom_kwargs or {}
 
     def maybe_load_model(model):
+        print("Save path: {}".format(save_path)) ## print save path for debugging
         if os.path.exists(os.path.join(save_path, "results.pkl")) and not force_retrain:
             print("loading from", save_path)
             checkpoint_path = os.path.join(save_path, "pytorch_model.bin")
