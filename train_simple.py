@@ -1,5 +1,4 @@
 import json
-import math
 import os
 import random
 import subprocess
@@ -27,7 +26,7 @@ MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2-medium",
         default_lr=5e-5,
-        eval_batch_size=10,
+        eval_batch_size=32,
     ),
     ModelConfig(
         name="gpt2-large",
@@ -113,7 +112,6 @@ MODELS_DICT: Dict[str, ModelConfig] = {
     model_config.name: model_config for model_config in MODEL_CONFIGS
 }
 
-new_lr = 5e-5 * math.sqrt(10 / 32)
 
 loss_dict = {
     "logconf": logconf_loss_fn(),
@@ -144,14 +142,14 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 10,
+    batch_size: int = 32,
     max_ctx: int = 1024,
     ds_name: str = "cosmos_qa",
     loss: str = "xent",
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
-    lr: Optional[float] = new_lr,
+    lr: Optional[float] = None,
     optim: Optional[str] = None,
     epochs: int = 2,
     force_retrain: bool = False,
