@@ -20,7 +20,10 @@ class TransformerWithHead(PreTrainedModel):
         self.num_labels = config.num_labels
         lm = AutoModelForCausalLM.from_pretrained(name, **kwargs)
         self.lm = lm
-        self.transformer = lm.transformer
+        if name[:4] ==  "gpt2":
+            self.transformer = lm.transformer
+        else:
+            self.transformer = lm.model
         hidden_size = getattr(config, "n_embd", getattr(config, "hidden_size", None))
         self.score = torch.nn.Linear(hidden_size, self.num_labels, bias=False).to(
             lm.lm_head.weight.dtype

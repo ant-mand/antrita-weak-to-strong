@@ -20,12 +20,12 @@ from weak_to_strong.train import ModelConfig, train_and_save_model
 MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2",
-        default_lr=5e-5,
+        default_lr=1e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
         name="gpt2-medium",
-        default_lr=5e-5,
+        default_lr=1e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
@@ -137,9 +137,14 @@ def get_config_foldername(config: dict) -> str:
                 return value
         else:
             return str(value)
-
-    return "-".join(f"{shorten_key(k)}={shorten_value(v)}" for k, v in sorted(config.items()))
-
+        
+    name_params = []
+    relevant_configs = ['ds_name', 'lr', 'model_ckpt', \
+                        'weak_model_size', 'epochs', 'batch_size', 'loss']
+    for k, v in sorted(config.items()):
+        if k in relevant_configs:
+            name_params.append(f"{shorten_key(k)}={shorten_value(v)}")
+    return "-".join(name_params)
 
 def main(
     batch_size: int = 32,
@@ -151,7 +156,7 @@ def main(
     model_size: str = "gpt2",
     lr: Optional[float] = None,
     optim: Optional[str] = None,
-    epochs: int = 2,
+    epochs: int = 3,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
@@ -159,18 +164,23 @@ def main(
     results_folder: str = "./results",
     linear_probe: bool = False,
     lr_schedule: str = "cosine_anneal",
+
     # Note: you can pass either weak_model_size or weak_labels_path. If you pass
     # weak_model_size, we will guess the path to the weak labels based on the weak
     # model. If you pass weak_labels_path, we will use that path instead.
     # If you pass neither, we will train on ground truth.
+
     weak_model_size: Optional[str] = None,
     weak_labels_path: Optional[str] = None,
     sweep_subfolder: str = "default",
+
     # Set to a very large value so that by default we don't do any intermediate evals but
     # still do final evals (which requires eval_every to be set to a non-zero, non-None value)
+
     eval_every: int = 1000000,
     sync_command: Optional[str] = None,
 ):
+    
     # this is per device!
     if minibatch_size_per_device is None:
         minibatch_size_per_device = 1
@@ -178,6 +188,7 @@ def main(
     assert (
         weak_model_size is None or weak_labels_path is None
     ), "Can't pass both weak_model_size and weak_labels_path"
+    print(MODELS_DICT)
     model_config = MODELS_DICT[model_size]
 
     use_default_lr = False
