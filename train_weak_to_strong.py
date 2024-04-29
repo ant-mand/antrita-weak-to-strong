@@ -138,7 +138,7 @@ def main(
     seed: int = 0,
     minibatch_size_per_device: Optional[int] = None,
     train_with_dropout: bool = False,
-    results_folder: str = "/tmp/results",
+    results_folder: str = "./results",
     linear_probe: bool = False,
     lr_schedule: str = "cosine_anneal",
     log_prefix: str = "",
