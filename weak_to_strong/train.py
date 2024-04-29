@@ -195,6 +195,7 @@ def train_and_save_model(
     custom_kwargs = model_config.custom_kwargs or {}
 
     def maybe_load_model(model):
+        print("Save path: {}".format(save_path)) ## print save path for debugging
         if os.path.exists(os.path.join(save_path, "results.pkl")) and not force_retrain:
             print("loading from", save_path)
             checkpoint_path = os.path.join(save_path, "pytorch_model.bin")
@@ -269,7 +270,7 @@ def train_and_save_model(
         if save_path:
             # Note: If the model is wrapped by DataParallel, we need to unwrap it before saving
             (model if hasattr(model, "save_pretrained") else model.module).save_pretrained(
-                save_path
+                save_path, safe_serialization=False
             )
             print("saved", save_path)
 
