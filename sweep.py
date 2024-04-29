@@ -22,17 +22,17 @@ def main(model_sizes: Union[List[str], str], **kwargs):
     for model_size in model_sizes:
         subprocess.run(basic_args + ["--model_size", model_size], check=True)
 
-    # print("Running transfer models")
-    # for i in range(len(model_sizes)):
-    #     for j in range(i, len(model_sizes)):
-    #         weak_model_size = model_sizes[i]
-    #         strong_model_size = model_sizes[j]
-    #         print(f"Running weak {weak_model_size} to strong {strong_model_size}")
-    #         subprocess.run(
-    #             basic_args
-    #             + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size],
-    #             check=True,
-    #         )
+    print("Running transfer models")
+    for i in range(len(model_sizes)):
+        for j in range(i, len(model_sizes)):
+            weak_model_size = model_sizes[i]
+            strong_model_size = model_sizes[j]
+            print(f"Running weak {weak_model_size} to strong {strong_model_size}")
+            subprocess.run(
+                basic_args
+                + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size],
+                check=True,
+            )
 
 
 if __name__ == "__main__":
