@@ -185,19 +185,50 @@ register_dataset(
 
 
 def format_ethics_justice(ex, rng):
+    """
+    Format each example to ensure compatibility with model input requirements.
+    Adds robust error handling for missing keys.
+    """
     print("Current example:", ex)  # Debug output to see the actual data structure
-    txt = ex.get('input', '')
-    hard_label = int(ex['label'])
+    txt = ex.get('input', None)  # Safely access 'input', defaulting to None if not found
+    label = ex.get('label', None)  # Safely access 'label', defaulting to None if not found
+
+    if txt is None or label is None:
+        print("Warning: Missing 'input' or 'label' in example:", ex)
+        return None  # Skip this example if required data is missing
+
+    hard_label = int(label)  # Convert label to int, assuming label is appropriately formatted
     return {'txt': txt, 'hard_label': hard_label}
+from datasets import load_dataset
+import functools
+from random import Random
+
+def register_dataset(name, config):
+    """
+    Registers a dataset with a specified configuration.
+    Applies a formatting function to each example in the dataset.
+    """
+    try:
+        # Load the dataset using the specified loader function and subset
+        ds = config['loader'](config['name'], config['subset'])
+        # Apply the formatter function with error handling
+        formatted_ds = ds.map(functools.partial(config['formatter'], rng=Random(42)), batched=False)
+        print(f"Dataset {name} registered and formatted successfully.")
+        return formatted_ds
+    except Exception as e:
+        print(f"Failed to register and format the dataset {name}. Error: {str(e)}")
+        return None
+
+# Configuration for registering the dataset
+dataset_config = {
+    'name': 'hendrycks/ethics',
+    'subset': 'justice',
+    'loader': load_dataset,  # Assuming 'load_dataset' is the correct function to use
+    'formatter': format_ethics_justice
+}
 
 # Register the dataset
-register_dataset(
-    "ethics_justice",
-    DatasetConfig(
-        loader=hf_loader("hendrycks/ethics", "justice"),  # Specify the correct path and subset name
-        formatter=format_ethics_justice
-    ),
-)
+registered_dataset = register_dataset("ethics_justice", dataset_config)
 
 def format_paws(ex, rng):
     txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
