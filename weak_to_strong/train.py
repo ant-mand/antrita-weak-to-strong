@@ -185,6 +185,7 @@ def train_and_save_model(
     lr_schedule: str = "constant",
     optimizer_name: str = "adam",
     eval_every: Optional[int] = None,
+    strong_ckpt_path: Optional[str] = None,
 ):
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -225,9 +226,14 @@ def train_and_save_model(
             linear_probe=linear_probe,
             **custom_kwargs,
         )
+        if strong_ckpt_path:
+            load_model(model, strong_ckpt_path)
+            print("Checkpoint loaded successfully!")
+
         already_trained = maybe_load_model(model)
         # slight misnomer, more like minibatch_size_per_dp_replica
         minibatch_size = minibatch_size_per_device
+
     else:
         model = TransformerWithHead.from_pretrained(
             model_config.name,
@@ -235,6 +241,10 @@ def train_and_save_model(
             linear_probe=linear_probe,
             **custom_kwargs
         ).to("cuda")
+        if strong_ckpt_path:
+            load_model(model, strong_ckpt_path)
+            print("Checkpoint loaded successfully!")
+            
         already_trained = maybe_load_model(model)
         # data parallel:  currently not supported with model parallel
 
