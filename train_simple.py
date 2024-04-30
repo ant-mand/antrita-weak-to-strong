@@ -16,6 +16,8 @@ from weak_to_strong.datasets import (VALID_DATASETS, load_dataset,
 from weak_to_strong.loss import logconf_loss_fn, product_loss_fn, xent_loss
 from weak_to_strong.train import ModelConfig, train_and_save_model
 
+#### INITIALIZATION ####
+
 # NOTE learning rates are not particularly tuned, work somewhat reasonably at train batch size 32
 MODEL_CONFIGS = [
     ModelConfig(
@@ -122,6 +124,8 @@ loss_dict = {
 VALID_LOSSES: List[str] = list(loss_dict.keys())
 
 
+#### results path ####
+
 def get_config_foldername(config: dict) -> str:
     def shorten_key(key: str) -> str:
         return "".join(word[0] for word in key.split("_"))
@@ -147,6 +151,15 @@ def get_config_foldername(config: dict) -> str:
     return "-".join(name_params)
 
 
+BASERESULTSPATH = "./results"
+
+def get_strong_ckpt_path(results_folder, sweep_subfolder, config):
+    config_name = get_config_foldername(config)
+    return os.path.join(results_folder, sweep_subfolder, config_name, "strong_ckpt")
+
+
+#### MODEL INITIALIZATION ####
+
 def main(
     batch_size: int = 32,
     max_ctx: int = 1024,
@@ -163,7 +176,7 @@ def main(
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
     train_with_dropout: bool = False,
-    results_folder: str = "./results",
+    results_folder: str = BASERESULTSPATH,
     linear_probe: bool = False,
     lr_schedule: str = "cosine_anneal",
 
@@ -183,6 +196,9 @@ def main(
     sync_command: Optional[str] = None,
     strong_ckpt_path: Optional[str] = None,  ## added from Dang's code
 ):
+    
+    #### INITIALIZATION ####
+
     # this is per device!
     if minibatch_size_per_device is None:
         minibatch_size_per_device = 1
@@ -207,6 +223,9 @@ def main(
     if model_ckpt is None:
         model_ckpt = model_size
 
+    
+    #### CONFIGURATION ####
+
     # The commented out terms are the ones that should not change final results
     config = {
         "batch_size": batch_size,  ## INTERESTED
@@ -215,20 +234,20 @@ def main(
         "loss": loss,   ## INTERESTED
         "n_docs": n_docs,
         "n_test_docs": n_test_docs,
-        ## interested in model_size
+        "model_size": model_size,  ## INTERESTED
         "model_ckpt": model_ckpt,
         "lr": lr,   ## INTERESTED
         "optim": optim,
         "epochs": epochs,  ## INTERESTED
-        # "force_retrain": force_retrain,
+        "force_retrain": force_retrain,
         "seed": seed,
-        # "minibatch_size_per_device": minibatch_size_per_device,
+        "minibatch_size_per_device": minibatch_size_per_device,
         "train_with_dropout": train_with_dropout,
-        # "results_folder": results_folder,
+        "results_folder": results_folder,
         "linear_probe": linear_probe,
         "lr_schedule": lr_schedule,
         "eval_every": eval_every,
-        # "sweep_subfolder": sweep_subfolder,
+        "sweep_subfolder": sweep_subfolder,
         "strong_ckpt": strong_ckpt_path,
     }
 
@@ -245,8 +264,14 @@ def main(
             results_folder + "/" + sweep_subfolder + "/" + weak_model_config_name + "/weak_labels"
         )
 
+        strong_ckpt_path = get_strong_ckpt_path(results_folder, sweep_subfolder, config)
+        config['strong_ckpt'] = strong_ckpt_path
+
     eval_batch_size = model_config.eval_batch_size
     random.seed(seed)
+
+
+    #### DATA LOADING ####
 
     # Load dataset
     dataset = load_dataset(ds_name, seed=seed, split_sizes=dict(train=n_docs, test=n_test_docs))
@@ -254,6 +279,7 @@ def main(
     # Split the training dataset in half
     train_dataset, test_ds = dataset["train"], dataset["test"]
 
+    # weak labels path, it is None if training on ground truth
     if weak_labels_path is None:
         split_data = train_dataset.train_test_split(test_size=0.5, seed=seed)
         train1_ds, train2_ds = split_data["train"], split_data["test"]
@@ -287,6 +313,7 @@ def main(
         sweep_subfolder=sweep_subfolder,
         config_name=config_name,
     )
+
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
     print("Max context: {}.format(max_ctx)")
@@ -294,6 +321,8 @@ def main(
     test_ds = tokenize_dataset(test_ds, tokenizer, max_ctx)
     if train2_ds:
         train2_ds = tokenize_dataset(train2_ds, tokenizer, max_ctx)
+
+    #### TRAINING, EVAL, AND SAVE ####
 
     loss_fn = loss_dict[loss]
     print(f"Training model model, size {model_size}")
