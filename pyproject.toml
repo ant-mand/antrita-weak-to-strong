@@ -4,9 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "weak_to_strong"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
-  { name="OpenAI", email="generalization@openai.com" },
+  { name="OpenAI", email="generalization@openai.com"},
+  { name="Antrita M", email="amanduva@uchicago.edu"},
+  { name="Natalia E", email="elezovic@uchicago.edu"},
 ]
 description = "Weak-to-strong generalization"
 readme = "README.md"

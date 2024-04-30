@@ -1,6 +1,5 @@
 import itertools
 import os
-import pickle
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -10,14 +9,13 @@ import numpy as np
 import torch
 import torch_optimizer as toptim
 from transformers.modeling_utils import load_sharded_checkpoint
-from safetensors.torch import load_file, load_model
+from safetensors.torch import load_model
 
 import weak_to_strong.logger as logger
 from weak_to_strong.common import clear_mem
 from weak_to_strong.eval import eval_model_acc
 from weak_to_strong.loss import xent_loss
 from weak_to_strong.model import TransformerWithHead
-
 
 @dataclass
 class ModelConfig:
@@ -49,6 +47,7 @@ def train_model(
 ):
     print("LR", lr, "batch_size", batch_size, "minibatch_size", minibatch_size)
     assert batch_size % minibatch_size == 0, "batch size must be divisible by minibatch size"
+    
     # we purposefully turn off dropout, for determinism
     # this seems to help for 1 epoch finetuning anyways
     if train_with_dropout:
@@ -162,6 +161,7 @@ def train_model(
         final_eval_results = eval_model_acc(model, eval_ds, eval_batch_size)
         logger.logkv("eval_accuracy", np.mean([r["acc"] for r in final_eval_results]))
         logger.dumpkvs()
+    
     return final_eval_results
 
 
@@ -202,15 +202,8 @@ def train_and_save_model(
             print("loading from", save_path)
             checkpoint_path = os.path.join(save_path, "model.safetensors")
             if not os.path.exists(checkpoint_path):
-                # Assume this means we have a sharded checkpoint, and load it appropriately
                 load_sharded_checkpoint(model, checkpoint_path)
             else:
-                # state_dict = torch.load(os.path.join(save_path, "pytorch_model.bin"))
-                # state_dict = {
-                #     k.replace("transformer.module", "transformer"): v
-                #     for (k, v) in state_dict.items()
-                # }
-                # custom_kwargs["state_dict"] = state_dict
                 load_model(model, checkpoint_path)
             return True
         return False
@@ -244,7 +237,7 @@ def train_and_save_model(
         if strong_ckpt_path:
             load_model(model, strong_ckpt_path)
             print("Checkpoint loaded successfully!")
-            
+
         already_trained = maybe_load_model(model)
         # data parallel:  currently not supported with model parallel
 
