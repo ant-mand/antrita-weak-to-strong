@@ -264,8 +264,8 @@ def main(
             results_folder + "/" + sweep_subfolder + "/" + weak_model_config_name + "/weak_labels"
         )
 
-        strong_ckpt_path = get_strong_ckpt_path(results_folder, sweep_subfolder, config)
-        config['strong_ckpt'] = strong_ckpt_path
+        # strong_ckpt_path = get_strong_ckpt_path(results_folder, sweep_subfolder, config)
+        # config['strong_ckpt'] = strong_ckpt_path
 
     eval_batch_size = model_config.eval_batch_size
     random.seed(seed)
