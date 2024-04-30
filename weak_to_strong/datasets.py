@@ -197,18 +197,30 @@ register_dataset(
 
 def format_cola(ex):
     """
-    Formats GLUE CoLA dataset entries for consistency and clarity.
+    Formats the CoLA dataset examples.
     """
-    return {
-        'txt': f"Sentence: {ex['sentence']}",
-        'hard_label': int(ex['label'])  # Ensuring label is integer
-    }
+    txt = f"Sentence: {ex['sentence']}"
+    hard_label = int(ex['label'])  # The label is already an integer; ensure it's cast correctly.
+    return {'txt': txt, 'hard_label': hard_label}
 
-register_dataset(
-    "glue_cola",  # Unique name for the dataset registration.
-    DatasetConfig(
-        loader=hf_loader("glue", "cola", split_names=dict(test="validation")), 
-        formatter=format_cola
+from datasets import load_dataset
+
+def register_dataset(dataset_name, subset_name, formatter):
+    """
+    Loads and formats a specified dataset from the Hugging Face datasets.
+    """
+    # Load the dataset
+    dataset = load_dataset(dataset_name, subset_name)
+
+    # Apply the formatting function to the dataset
+    formatted_dataset = dataset.map(formatter)
+    
+    print(f"Dataset {subset_name} registered and formatted successfully.")
+    return formatted_dataset
+
+# Call the function to register and format the CoLA dataset
+registered_cola_dataset = register_dataset("glue", "cola", format_cola)
+
     ),
 )
 
