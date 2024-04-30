@@ -196,19 +196,11 @@ register_dataset(
 )
 
 def format_glue_cola(ex, rng):
-    """
-    Format each example in the GLUE CoLA dataset.
-    """
-    txt = f"Sentence: {ex['sentence']}"
-    hard_label = int(ex['label'])
-    return {'txt': txt, 'hard_label': hard_label}
+    return dict(txt=ex['sentence'], hard_label=ex['label'])
 
 register_dataset(
-    "glue_cola",
-    DatasetConfig(
-        loader=hf_loader("nyu-mll", "glue", split_names=dict(test="validation")),
-        formatter=format_glue_cola
-    ),
+    "glue_cola", 
+    DatasetConfig(loader=hf_loader("glue", "cola"), formatter=format_glue_cola),
 )
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
