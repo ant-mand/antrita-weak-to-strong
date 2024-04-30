@@ -195,16 +195,24 @@ register_dataset(
     ),
 )
 
-def format_glue_cola(ex, rng):
-    return dict(txt=ex['sentence'], hard_label=ex['label'])
+def format_cola(ex):
+    """
+    Formats GLUE CoLA dataset entries for consistency and clarity.
+    """
+    return {
+        'txt': f"Sentence: {ex['sentence']}",
+        'hard_label': int(ex['label'])  # Ensuring label is integer
+    }
 
 register_dataset(
-    "glue_cola", 
-    DatasetConfig(loader=hf_loader("glue", "cola"), formatter=format_glue_cola),
+    "glue_cola",  # Unique name for the dataset registration.
+    DatasetConfig(
+        loader=hf_loader("glue", "cola", split_names=dict(test="validation")), 
+        formatter=format_cola
+    ),
 )
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
-
 
 """
 def format_mctaco(ex, rng):
