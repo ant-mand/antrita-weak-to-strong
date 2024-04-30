@@ -151,8 +151,7 @@ def main(
     model_size: str = "gpt2",
     lr: Optional[float] = None,
     optim: Optional[str] = None,
-    total_steps: Optional[int] = 10000,
-    #epochs: int = 2,
+    epochs: int = 2,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
@@ -236,20 +235,6 @@ def main(
 
     # Split the training dataset in half
     train_dataset, test_ds = dataset["train"], dataset["test"]
-
-  # Calculate steps per epoch and number of epochs
-    steps_per_epoch = len(train_dataset) // batch_size
-    if steps_per_epoch == 0:
-        raise ValueError("Batch size is too large relative to the dataset size.")
-
-  # Validate total_steps to ensure reasonable number of epochs
-    epochs = total_steps // steps_per_epoch if steps_per_epoch > 0 else 0
-    if epochs == 0:
-        raise ValueError(f"Total steps {total_steps} too high for the number of steps per epoch {steps_per_epoch}.")
-      
-  # Ensure at least a minimum number of epochs for training
-    min_epochs = 1  # Set minimum epochs to at least 1 to ensure some training occurs
-    epochs = max(epochs, min_epochs)
 
     if weak_labels_path is None:
         split_data = train_dataset.train_test_split(test_size=0.5, seed=seed)
