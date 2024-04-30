@@ -185,11 +185,10 @@ register_dataset(
 
 
 def format_ethics_justice(ex, rng):
-    # The text itself is the input, changed 'text' to 'input'
-    txt = ex['input']  # Updated field name from 'text' to 'input'
-    # Label is already binary (0 or 1), so we can use it directly as the hard_label
+    print("Current example:", ex)  # Debug output to see the actual data structure
+    txt = ex.get('input', '')
     hard_label = int(ex['label'])
-    return dict(txt=txt, hard_label=hard_label)
+    return {'txt': txt, 'hard_label': hard_label}
 
 # Register the dataset
 register_dataset(
