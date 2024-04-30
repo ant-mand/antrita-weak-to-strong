@@ -185,8 +185,8 @@ register_dataset(
 
 
 def format_ethics_justice(ex, rng):
-    # The text itself is the input
-    txt = ex['text']
+    # The text itself is the input, changed 'text' to 'input'
+    txt = ex['input']  # Updated field name from 'text' to 'input'
     # Label is already binary (0 or 1), so we can use it directly as the hard_label
     hard_label = int(ex['label'])
     return dict(txt=txt, hard_label=hard_label)
@@ -195,7 +195,7 @@ def format_ethics_justice(ex, rng):
 register_dataset(
     "ethics_justice",
     DatasetConfig(
-        loader=hf_loader("ethics", "justice"),  # Specify the correct path and subset name
+        loader=hf_loader("hendrycks/ethics", "justice"),  # Specify the correct path and subset name
         formatter=format_ethics_justice
     ),
 )
