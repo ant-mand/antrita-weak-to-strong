@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch_optimizer as toptim
 from transformers.modeling_utils import load_sharded_checkpoint
+from safetensors.torch import load_file, load_model
 
 import weak_to_strong.logger as logger
 from weak_to_strong.common import clear_mem
@@ -195,20 +196,21 @@ def train_and_save_model(
     custom_kwargs = model_config.custom_kwargs or {}
 
     def maybe_load_model(model):
-        print("Save path: {}".format(save_path)) ## print save path for debugging
-        if os.path.exists(os.path.join(save_path, "results.pkl")) and not force_retrain:
+        print("Save path: {}".format(save_path))
+        if os.path.exists(os.path.join(save_path, "results.txt")) and not force_retrain:
             print("loading from", save_path)
-            checkpoint_path = os.path.join(save_path, "pytorch_model.bin")
+            checkpoint_path = os.path.join(save_path, "model.safetensors")
             if not os.path.exists(checkpoint_path):
                 # Assume this means we have a sharded checkpoint, and load it appropriately
                 load_sharded_checkpoint(model, checkpoint_path)
             else:
-                state_dict = torch.load(os.path.join(save_path, "pytorch_model.bin"))
-                state_dict = {
-                    k.replace("transformer.module", "transformer"): v
-                    for (k, v) in state_dict.items()
-                }
-                custom_kwargs["state_dict"] = state_dict
+                # state_dict = torch.load(os.path.join(save_path, "pytorch_model.bin"))
+                # state_dict = {
+                #     k.replace("transformer.module", "transformer"): v
+                #     for (k, v) in state_dict.items()
+                # }
+                # custom_kwargs["state_dict"] = state_dict
+                load_model(model, checkpoint_path)
             return True
         return False
 
@@ -228,7 +230,10 @@ def train_and_save_model(
         minibatch_size = minibatch_size_per_device
     else:
         model = TransformerWithHead.from_pretrained(
-            model_config.name, num_labels=2, linear_probe=linear_probe, **custom_kwargs
+            model_config.name,
+            num_labels=2,
+            linear_probe=linear_probe,
+            **custom_kwargs
         ).to("cuda")
         already_trained = maybe_load_model(model)
         # data parallel:  currently not supported with model parallel
@@ -246,6 +251,7 @@ def train_and_save_model(
         else:
             minibatch_size = minibatch_size_per_device
 
+    print("Already trained: {}".format(already_trained))
     if already_trained:
         test_results = eval_model_acc(model, test_ds, eval_batch_size)
     else:
@@ -280,18 +286,12 @@ def train_and_save_model(
         logger.logkv("inference_accuracy", np.mean([r["acc"] for r in inference_results]))
 
     if save_path:
-        with open(os.path.join(save_path, "results.pkl"), "wb") as f:
-            pickle.dump(
-                {
-                    "avg_acc_test": float(np.mean([r["acc"] for r in test_results])),
-                    "avg_acc_inference": float(
-                        np.mean([r["acc"] for r in inference_results] if inference_results else [])
-                    ),
-                    "test_results": test_results,
-                    "inference_results": inference_results if inference_results else [],
-                },
-                f,
-            )
+        with open(os.path.join(save_path, "results.txt"), "w") as f:
+            f.write("avg_acc_test: {}\n".format(float(np.mean([r["acc"] for r in test_results]))))
+            f.write("avg_acc_inference: {}\n".format(float(np.mean([r["acc"] for r in inference_results] if inference_results else []))))
+            f.write("test_results: {}\n".format(test_results))
+            f.write("inference_results: {}\n".format(inference_results if inference_results else []))
+                    
     # try to clean up memory
     clear_mem()
     logger.shutdown()
