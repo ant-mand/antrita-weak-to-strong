@@ -146,6 +146,7 @@ def get_config_foldername(config: dict) -> str:
             name_params.append(f"{shorten_key(k)}={shorten_value(v)}")
     return "-".join(name_params)
 
+
 def main(
     batch_size: int = 32,
     max_ctx: int = 1024,
@@ -154,6 +155,7 @@ def main(
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
+    model_ckpt: Optional[str] = None,  ## added from Dang's code
     lr: Optional[float] = None,
     optim: Optional[str] = None,
     epochs: int = 3,
@@ -179,8 +181,8 @@ def main(
 
     eval_every: int = 1000000,
     sync_command: Optional[str] = None,
+    strong_ckpt_path: Optional[str] = None,  ## added from Dang's code
 ):
-    
     # this is per device!
     if minibatch_size_per_device is None:
         minibatch_size_per_device = 1
@@ -202,6 +204,9 @@ def main(
     if optim is None:
         optim = model_config.default_optimizer
 
+    if model_ckpt is None:
+        model_ckpt = model_size
+
     # The commented out terms are the ones that should not change final results
     config = {
         "batch_size": batch_size,  ## INTERESTED
@@ -210,7 +215,8 @@ def main(
         "loss": loss,   ## INTERESTED
         "n_docs": n_docs,
         "n_test_docs": n_test_docs,
-        "model_size": model_size,  ## INTERESTED
+        ## interested in model_size
+        "model_ckpt": model_ckpt,
         "lr": lr,   ## INTERESTED
         "optim": optim,
         "epochs": epochs,  ## INTERESTED
@@ -223,6 +229,7 @@ def main(
         "lr_schedule": lr_schedule,
         "eval_every": eval_every,
         # "sweep_subfolder": sweep_subfolder,
+        "strong_ckpt": strong_ckpt_path,
     }
 
     if weak_model_size is not None:
@@ -265,7 +272,8 @@ def main(
             if result.returncode != 0:
                 raise RuntimeError(f"Sync command failed with return code {result.returncode}")
         train1_ds = load_from_disk(weak_labels_path)
-        train2_ds = None
+        # train2_ds = None
+        train2_ds = test_ds
 
         weak_model_config = json.load(open(weak_labels_path.replace("weak_labels", "config.json")))
         config["weak_model_size"] = weak_model_config["model_size"]
@@ -281,6 +289,7 @@ def main(
     )
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
+    print("Max context: {}.format(max_ctx)")
     train1_ds = tokenize_dataset(train1_ds, tokenizer, max_ctx)
     test_ds = tokenize_dataset(test_ds, tokenizer, max_ctx)
     if train2_ds:
@@ -306,6 +315,7 @@ def main(
         lr_schedule=lr_schedule,
         optimizer_name=optim,
         eval_every=eval_every,
+        strong_ckpt_path=strong_ckpt_path,
     )
 
     if weak_ds is not None:

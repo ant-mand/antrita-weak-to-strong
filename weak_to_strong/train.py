@@ -230,9 +230,9 @@ def train_and_save_model(
         minibatch_size = minibatch_size_per_device
     else:
         model = TransformerWithHead.from_pretrained(
-            model_config.name, 
-            num_labels=2, 
-            linear_probe=linear_probe, 
+            model_config.name,
+            num_labels=2,
+            linear_probe=linear_probe,
             **custom_kwargs
         ).to("cuda")
         already_trained = maybe_load_model(model)
