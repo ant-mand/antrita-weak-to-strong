@@ -195,31 +195,21 @@ register_dataset(
     ),
 )
 
-def format_cola(ex):
+def format_glue_cola(ex, rng):
     """
-    Format each example in the CoLA dataset. This function expects a dictionary with 'sentence' and 'label'.
+    Format each example in the GLUE CoLA dataset.
     """
-    # Format the sentence with a prefix for clarity
     txt = f"Sentence: {ex['sentence']}"
-    # The label is directly converted to int, assuming it's already binary (0 or 1)
     hard_label = int(ex['label'])
     return {'txt': txt, 'hard_label': hard_label}
 
-def register_dataset(name, subset_name, formatter):
-    """
-    Registers and formats a specific subset of a dataset from the Hugging Face datasets library.
-    """
-    # Load the dataset; specify the split if necessary (default to 'train' for simplicity here)
-    ds = load_dataset(name, subset_name, split='train')
-    
-    # Apply the formatter function to the dataset
-    formatted_ds = ds.map(formatter)
-    
-    print(f"Dataset {subset_name} registered and formatted successfully.")
-    return formatted_ds
-
-# Register and format the CoLA dataset from the GLUE benchmark
-registered_cola_dataset = register_dataset("glue", "cola", format_cola)
+register_dataset(
+    "glue_cola",
+    DatasetConfig(
+        loader=hf_loader("nyu-mll", "glue", split_names=dict(test="validation")),
+        formatter=format_glue_cola
+    ),
+)
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
