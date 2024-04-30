@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MODEL_SIZE ="gpt2"
+MODEL_SIZE="gpt2"
 DATASET_NAME="boolq"
 BATCH_SIZE=32
 LEARNING_RATE=1e-5
