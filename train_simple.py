@@ -228,18 +228,17 @@ def main(
 
     # The commented out terms are the ones that should not change final results
     config = {
-        "batch_size": batch_size,  ## INTERESTED
+        "batch_size": batch_size,
         "max_ctx": max_ctx,
         "ds_name": ds_name,
-        "loss": loss,   ## INTERESTED
+        "loss": loss,
         "n_docs": n_docs,
         "n_test_docs": n_test_docs,
-        "model_size": model_size,  ## INTERESTED
-        "model_ckpt": model_ckpt,
-        "lr": lr,   ## INTERESTED
+        "model_size": model_size,
+        "lr": lr,
         "optim": optim,
-        "epochs": epochs,  ## INTERESTED
-        "force_retrain": force_retrain,
+        "epochs": epochs,
+        # "force_retrain": force_retrain,
         "seed": seed,
         "minibatch_size_per_device": minibatch_size_per_device,
         "train_with_dropout": train_with_dropout,
