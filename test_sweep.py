@@ -7,7 +7,7 @@ def main(model_sizes, num_steps=10000):
         model_sizes = model_sizes.split(',')
 
     # Base command that includes the script to run and the fixed number of steps
-    basic_args = [sys.executable, "train_simple.py", "--num_steps", str(num_steps)]
+    basic_args = [sys.executable, "test_train_simple.py", "--num_steps", str(num_steps)]
     
     # Loop over all specified model sizes and run the training script for each one
     for model_size in model_sizes:
