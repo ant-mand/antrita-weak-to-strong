@@ -26,5 +26,8 @@ python train_simple.py \
     --lr=$LEARNING_RATE \
     --epochs=$EPOCHS \
     --sweep_subfolder=$SWEEP_SUBFOLDER \
-    --loss=$LOSS_TYPE
+    --loss=$LOSS_TYPE \
+    --model_ckpt=$MODEL_CKPT \
+    --strong_ckpt_path=$STRONG_CKPT_PATH \
+    --weak_labels_path=$WEAK_LABELS_PATH
     
