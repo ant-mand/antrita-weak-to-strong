@@ -119,7 +119,7 @@ def main(
     num_steps: int,  # Number of fixed steps for training
     batch_size: int = 32,
     max_ctx: int = 1024,
-    ds_name: str = "paws_labeled_final",
+    ds_name: str = "boolq",
     loss: str = "xent",
     model_size: str = "gpt2",
     lr: Optional[float] = None,
