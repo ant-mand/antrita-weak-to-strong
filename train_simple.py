@@ -151,6 +151,13 @@ def get_config_foldername(config: dict) -> str:
     return "-".join(name_params)
 
 
+BASERESULTSPATH = "./results"
+
+# def get_strong_ckpt_path(results_folder, sweep_subfolder, config):
+#     config_name = get_config_foldername(config)
+#     return os.path.join(results_folder, sweep_subfolder, config_name, "strong_ckpt")
+
+
 #### MODEL INITIALIZATION ####
 
 def main(
