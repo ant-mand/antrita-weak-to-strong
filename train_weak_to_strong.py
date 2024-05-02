@@ -117,7 +117,7 @@ VALID_LOSSES: List[str] = list(loss_dict.keys())
 def main(
     batch_size: int = 32,
     max_ctx: int = 1024,
-    ds_name: str = "sciq",
+    ds_name: str = "paws_labeled_final",
     transfer_loss: Union[str, Sequence[str]] = "xent,logconf",
     n_docs: int = 10000,
     n_test_docs: int = 200,
