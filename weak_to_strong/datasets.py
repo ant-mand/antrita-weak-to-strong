@@ -161,6 +161,19 @@ register_dataset(
     ),
 )
 
+def format_paws(ex, rng):
+    txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
+    hard_label = int(ex['label'])
+    return dict(txt=txt, hard_label=hard_label)
+
+register_dataset(
+    "paws_labeled_final",  # Unique name for the dataset registration.
+    DatasetConfig(
+        loader=hf_loader("paws", "labeled_final", split_names=dict(test="validation")), 
+        formatter=format_paws
+    ),
+)
+
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
