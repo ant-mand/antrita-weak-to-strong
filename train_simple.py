@@ -265,6 +265,7 @@ def main(
 
         strong_ckpt_path = get_strong_ckpt_path(results_folder, sweep_subfolder, config)
         config['strong_ckpt'] = strong_ckpt_path
+        print(config['strong_ckpt'])
 
     eval_batch_size = model_config.eval_batch_size
     random.seed(seed)
