@@ -114,7 +114,9 @@ MODELS_DICT: Dict[str, ModelConfig] = {
 
 
 loss_dict = {
-    "logconf": logconf_loss_fn(),
+    "log
+    
+  conf": logconf_loss_fn(),
     "product": product_loss_fn(),
     "xent": xent_loss(),
 }
@@ -145,7 +147,7 @@ def main(
     batch_size: int = 32,
     max_ctx: int = 1024,
     ds_name: str = "paws_labeled_final",
-    loss: str = "logconf",
+    loss: str = "product",
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
