@@ -142,7 +142,7 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 32,
+    batch_size: int = 16,
     max_ctx: int = 1024,
     ds_name: str = "cosmos_qa",
     loss: str = "xent",
