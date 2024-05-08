@@ -114,9 +114,7 @@ MODELS_DICT: Dict[str, ModelConfig] = {
 
 
 loss_dict = {
-    "log
-    
-  conf": logconf_loss_fn(),
+    "logconf": logconf_loss_fn(),
     "product": product_loss_fn(),
     "xent": xent_loss(),
 }
