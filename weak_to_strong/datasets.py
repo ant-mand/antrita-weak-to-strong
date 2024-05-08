@@ -153,6 +153,7 @@ def format_boolq(ex, rng):
     txt = f"Passage: {ex['passage']}\nQuestion: {ex['question']}"
     return dict(txt=txt, hard_label=hard_label)
 
+
 register_dataset(
     "boolq",
     DatasetConfig(
@@ -160,6 +161,18 @@ register_dataset(
     ),
 )
 
+def format_paws(ex, rng):
+    txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
+    hard_label = int(ex['label'])
+    return dict(txt=txt, hard_label=hard_label)
+
+register_dataset(
+    "paws_labeled_final",  # Unique name for the dataset registration.
+    DatasetConfig(
+        loader=hf_loader("paws", "labeled_final", split_names=dict(test="validation")), 
+        formatter=format_paws
+    ),
+)
 
 def format_openbookQA(ex, rng):
     id = ex["id"]
@@ -183,53 +196,17 @@ register_dataset(
     ),
 )
 
-
-def format_ethics_justice(ex, rng):
-    txt = ex['text']
-    hard_label = int(ex['label'])  # 1 or 0
-    return dict(txt=txt, hard_label=hard_label)
+def format_glue_cola(ex, rng):
+    return dict(txt=ex['sentence'], hard_label=ex['label'])
 
 register_dataset(
-    "ethics_justice",
-    DatasetConfig(
-        loader=hf_loader("hendrycks/ethics", "justice"), formatter=format_ethics_justice
-    ),
+    "glue_cola", 
+    DatasetConfig(loader=hf_loader("glue", "cola"), formatter=format_glue_cola),
 )
-
-
-def format_paws(ex, rng):
-    txt = f"Sentence 1: {ex['sentence1']} Sentence 2: {ex['sentence2']}"
-    hard_label = int(ex['label'])
-    return dict(txt=txt, hard_label=hard_label)
-
-register_dataset(
-    "paws_labeled_final",  # Unique name for the dataset registration.
-    DatasetConfig(
-        loader=hf_loader("paws", "labeled_final", split_names=dict(test="validation")), 
-        formatter=format_paws
-    ),
-)
-
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
-
 """
-def format_mctaco(ex, rng):
-    sentence = ex['sentence']
-    question = ex['question']
-    answer = ex['answer']
-    label = int(ex['label'] == 'yes') # Convert 'yes'/'no' to binary label (1/0)
-    txt = f"Context: {sentence}\nQuestion: {question}\nAnswer: {answer}"
-    return dict(txt=txt, hard_label=label)
-
-register_dataset(
-    "mc_taco",
-    DatasetConfig(
-        loader=hf_loader("mc_taco", split_names=dict(test="validation")), formatter=format_mctaco
-    ),
-)
-
 from datasets import disable_caching
 disable_caching()
 
