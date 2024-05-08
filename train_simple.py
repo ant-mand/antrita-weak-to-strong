@@ -20,12 +20,12 @@ from weak_to_strong.train import ModelConfig, train_and_save_model
 MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2",
-        default_lr=5e-5,
+        default_lr=2.5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
         name="gpt2-medium",
-        default_lr=5e-5,
+        default_lr=2.5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
