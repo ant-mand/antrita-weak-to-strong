@@ -20,12 +20,12 @@ from weak_to_strong.train import ModelConfig, train_and_save_model
 MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2",
-        default_lr=2.5e-5,
+        default_lr=5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
         name="gpt2-medium",
-        default_lr=2.5e-5,
+        default_lr=5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
@@ -142,10 +142,10 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 16,
+    batch_size: int = 32,
     max_ctx: int = 1024,
-    ds_name: str = "cosmos_qa",
-    loss: str = "xent",
+    ds_name: str = "paws_labeled_final",
+    loss: str = "logconf",
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
