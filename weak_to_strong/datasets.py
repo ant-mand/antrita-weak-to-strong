@@ -174,6 +174,14 @@ register_dataset(
     ),
 )
 
+def format_glue_cola(ex, rng):
+    return dict(txt=ex['sentence'], hard_label=ex['label'])
+
+register_dataset(
+    "glue_cola", 
+    DatasetConfig(loader=hf_loader("glue", "cola"), formatter=format_glue_cola),
+)
+
 
 VALID_DATASETS: list[str] = list(_REGISTRY.keys())
 
