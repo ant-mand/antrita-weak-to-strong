@@ -1,5 +1,6 @@
 import itertools
 import os
+import pickle
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -14,8 +15,9 @@ from safetensors.torch import load_model
 import weak_to_strong.logger as logger
 from weak_to_strong.common import clear_mem
 from weak_to_strong.eval import eval_model_acc
-from weak_to_strong.loss import xent_loss
+from weak_to_strong.loss import xent_loss, logconf_loss_fn
 from weak_to_strong.model import TransformerWithHead
+
 
 @dataclass
 class ModelConfig:
@@ -32,7 +34,7 @@ def train_model(
     model: torch.nn.Module,
     ds: datasets.Dataset,
     batch_size: int,
-    lr: float = 1e-5,
+    lr: float = 1e-05,
     loss_fn: Callable = xent_loss,
     log_every: int = 10,
     eval_every: int = 100,
@@ -47,7 +49,6 @@ def train_model(
 ):
     print("LR", lr, "batch_size", batch_size, "minibatch_size", minibatch_size)
     assert batch_size % minibatch_size == 0, "batch size must be divisible by minibatch size"
-    
     # we purposefully turn off dropout, for determinism
     # this seems to help for 1 epoch finetuning anyways
     if train_with_dropout:
@@ -155,13 +156,13 @@ def train_model(
             accuracies = []
         step += 1
         logger.dumpkvs()
+        torch.cuda.empty_cache()
     final_eval_results = None
     if eval_every:
         print("Final evaluation:")
         final_eval_results = eval_model_acc(model, eval_ds, eval_batch_size)
         logger.logkv("eval_accuracy", np.mean([r["acc"] for r in final_eval_results]))
         logger.dumpkvs()
-    
     return final_eval_results
 
 
@@ -185,7 +186,6 @@ def train_and_save_model(
     lr_schedule: str = "constant",
     optimizer_name: str = "adam",
     eval_every: Optional[int] = None,
-    strong_ckpt_path: Optional[str] = None,
 ):
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -195,6 +195,7 @@ def train_and_save_model(
 
     gradient_checkpointing = model_config.gradient_checkpointing
     custom_kwargs = model_config.custom_kwargs or {}
+
 
     def maybe_load_model(model):
         print("Save path: {}".format(save_path))
@@ -207,6 +208,24 @@ def train_and_save_model(
                 load_model(model, checkpoint_path)
             return True
         return False
+    
+
+    # def maybe_load_model(model):
+    #     if os.path.exists(os.path.join(save_path, "results.txt")) and not force_retrain:
+    #         print("loading from", save_path)
+    #         checkpoint_path = os.path.join(save_path, "model.safetensors")
+    #         if not os.path.exists(checkpoint_path):
+    #             # Assume this means we have a sharded checkpoint, and load it appropriately
+    #             load_sharded_checkpoint(model, checkpoint_path)
+    #         else:
+    #             state_dict = torch.load(os.path.join(save_path, "model.safetensors"))
+    #             state_dict = {
+    #                 k.replace("transformer.module", "transformer"): v
+    #                 for (k, v) in state_dict.items()
+    #             }
+    #             custom_kwargs["state_dict"] = state_dict
+    #         return True
+    #     return False
 
     already_trained = False
     # Load the model
@@ -219,25 +238,13 @@ def train_and_save_model(
             linear_probe=linear_probe,
             **custom_kwargs,
         )
-        if strong_ckpt_path:
-            load_model(model, strong_ckpt_path)
-            print("Checkpoint loaded successfully!")
-
         already_trained = maybe_load_model(model)
         # slight misnomer, more like minibatch_size_per_dp_replica
         minibatch_size = minibatch_size_per_device
-
     else:
         model = TransformerWithHead.from_pretrained(
-            model_config.name,
-            num_labels=2,
-            linear_probe=linear_probe,
-            **custom_kwargs
+            model_config.name, num_labels=2, linear_probe=linear_probe, **custom_kwargs
         ).to("cuda")
-        if strong_ckpt_path:
-            load_model(model, strong_ckpt_path)
-            print("Checkpoint loaded successfully!")
-
         already_trained = maybe_load_model(model)
         # data parallel:  currently not supported with model parallel
 
@@ -254,7 +261,6 @@ def train_and_save_model(
         else:
             minibatch_size = minibatch_size_per_device
 
-    print("Already trained: {}".format(already_trained))
     if already_trained:
         test_results = eval_model_acc(model, test_ds, eval_batch_size)
     else:
@@ -289,12 +295,18 @@ def train_and_save_model(
         logger.logkv("inference_accuracy", np.mean([r["acc"] for r in inference_results]))
 
     if save_path:
-        with open(os.path.join(save_path, "results.txt"), "w") as f:
-            f.write("avg_acc_test: {}\n".format(float(np.mean([r["acc"] for r in test_results]))))
-            f.write("avg_acc_inference: {}\n".format(float(np.mean([r["acc"] for r in inference_results] if inference_results else []))))
-            f.write("test_results: {}\n".format(test_results))
-            f.write("inference_results: {}\n".format(inference_results if inference_results else []))
-                    
+        with open(os.path.join(save_path, "results.txt"), "wb") as f:
+            pickle.dump(
+                {
+                    "avg_acc_test": float(np.mean([r["acc"] for r in test_results])),
+                    "avg_acc_inference": float(
+                        np.mean([r["acc"] for r in inference_results] if inference_results else [])
+                    ),
+                    "test_results": test_results,
+                    "inference_results": inference_results if inference_results else [],
+                },
+                f,
+            )
     # try to clean up memory
     clear_mem()
     logger.shutdown()
