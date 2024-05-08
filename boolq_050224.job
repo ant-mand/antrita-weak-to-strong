@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+#SBATCH --mail-user=amanduva@uchicago.edu
+#SBATCH --mail-type=ALL
+#SBATCH --output=res_%j.out
+#SBATCH --error=res_%j.err
+#SBATCH --job-name=check_boolq        # Name of the job
+#SBATCH --partition=general       # GPU partition
+#SBATCH --gres=gpu:4                
+#SBATCH --time=04:00:00
+#SBATCH --mem=80G                           
+# Load the module for Python or CUDA if needed
+
+
+# Source the conda.sh to setup Conda
+source /opt/conda/etc/profile.d/conda.sh
+
+# Activate your specific Conda environment
+conda activate /net/scratch/antrita-natalia/natalia-antrita-weak-to-strong/env
+
+# Run the Python script
+python sweep.py --model_sizes=gpt2,gpt2-medium
