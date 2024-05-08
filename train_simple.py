@@ -16,18 +16,16 @@ from weak_to_strong.datasets import (VALID_DATASETS, load_dataset,
 from weak_to_strong.loss import logconf_loss_fn, product_loss_fn, xent_loss
 from weak_to_strong.train import ModelConfig, train_and_save_model
 
-#### INITIALIZATION ####
-
 # NOTE learning rates are not particularly tuned, work somewhat reasonably at train batch size 32
 MODEL_CONFIGS = [
     ModelConfig(
         name="gpt2",
-        default_lr=1e-5,
+        default_lr=5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
         name="gpt2-medium",
-        default_lr=1e-5,
+        default_lr=5e-5,
         eval_batch_size=32,
     ),
     ModelConfig(
@@ -124,8 +122,6 @@ loss_dict = {
 VALID_LOSSES: List[str] = list(loss_dict.keys())
 
 
-#### results path ####
-
 def get_config_foldername(config: dict) -> str:
     def shorten_key(key: str) -> str:
         return "".join(word[0] for word in key.split("_"))
@@ -141,64 +137,40 @@ def get_config_foldername(config: dict) -> str:
                 return value
         else:
             return str(value)
-        
-    name_params = []
-    relevant_configs = ['ds_name', 'lr', 'model_ckpt', \
-                        'weak_model_size', 'epochs', 'batch_size', 'loss']
-    for k, v in sorted(config.items()):
-        if k in relevant_configs:
-            name_params.append(f"{shorten_key(k)}={shorten_value(v)}")
-    return "-".join(name_params)
 
+    return "-".join(f"{shorten_key(k)}={shorten_value(v)}" for k, v in sorted(config.items()))
 
-BASERESULTSPATH = "./results"
-
-# def get_strong_ckpt_path(results_folder, sweep_subfolder, config):
-#     config_name = get_config_foldername(config)
-#     return os.path.join(results_folder, sweep_subfolder, config_name, "strong_ckpt")
-
-
-#### MODEL INITIALIZATION ####
 
 def main(
-    batch_size: int = 32,
+    batch_size: int = 8,
     max_ctx: int = 1024,
     ds_name: str = "boolq",
     loss: str = "xent",
-    n_docs: int = 20000,
-    n_test_docs: int = 10000,
+    n_docs: int = 100,
+    n_test_docs: int = 40,
     model_size: str = "gpt2",
-    model_ckpt: Optional[str] = None,  ## added from Dang's code
-    lr: Optional[float] = None,
+    lr: Optional[float] = 1e-05,
     optim: Optional[str] = None,
-    epochs: int = 3,
+    epochs: int = 1,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
     train_with_dropout: bool = False,
-    results_folder: str = BASERESULTSPATH,
+    results_folder: str = "./results",
     linear_probe: bool = False,
     lr_schedule: str = "cosine_anneal",
-
     # Note: you can pass either weak_model_size or weak_labels_path. If you pass
     # weak_model_size, we will guess the path to the weak labels based on the weak
     # model. If you pass weak_labels_path, we will use that path instead.
     # If you pass neither, we will train on ground truth.
-
     weak_model_size: Optional[str] = None,
     weak_labels_path: Optional[str] = None,
     sweep_subfolder: str = "default",
-
     # Set to a very large value so that by default we don't do any intermediate evals but
     # still do final evals (which requires eval_every to be set to a non-zero, non-None value)
-
     eval_every: int = 1000000,
     sync_command: Optional[str] = None,
-    strong_ckpt_path: Optional[str] = None,  ## added from Dang's code
 ):
-    
-    #### INITIALIZATION ####
-
     # this is per device!
     if minibatch_size_per_device is None:
         minibatch_size_per_device = 1
@@ -206,7 +178,6 @@ def main(
     assert (
         weak_model_size is None or weak_labels_path is None
     ), "Can't pass both weak_model_size and weak_labels_path"
-    print(MODELS_DICT)
     model_config = MODELS_DICT[model_size]
 
     use_default_lr = False
@@ -219,12 +190,6 @@ def main(
 
     if optim is None:
         optim = model_config.default_optimizer
-
-    if model_ckpt is None:
-        model_ckpt = model_size
-
-    
-    #### CONFIGURATION ####
 
     # The commented out terms are the ones that should not change final results
     config = {
@@ -240,14 +205,13 @@ def main(
         "epochs": epochs,
         # "force_retrain": force_retrain,
         "seed": seed,
-        "minibatch_size_per_device": minibatch_size_per_device,
+        # "minibatch_size_per_device": minibatch_size_per_device,
         "train_with_dropout": train_with_dropout,
-        "results_folder": results_folder,
+        # "results_folder": results_folder,
         "linear_probe": linear_probe,
         "lr_schedule": lr_schedule,
         "eval_every": eval_every,
-        "sweep_subfolder": sweep_subfolder,
-        "strong_ckpt": strong_ckpt_path,
+        # "sweep_subfolder": sweep_subfolder,
     }
 
     if weak_model_size is not None:
@@ -263,15 +227,8 @@ def main(
             results_folder + "/" + sweep_subfolder + "/" + weak_model_config_name + "/weak_labels"
         )
 
-        strong_ckpt_path = get_strong_ckpt_path(results_folder, sweep_subfolder, config)
-        config['strong_ckpt'] = strong_ckpt_path
-        print(config['strong_ckpt'])
-
     eval_batch_size = model_config.eval_batch_size
     random.seed(seed)
-
-
-    #### DATA LOADING ####
 
     # Load dataset
     dataset = load_dataset(ds_name, seed=seed, split_sizes=dict(train=n_docs, test=n_test_docs))
@@ -279,7 +236,6 @@ def main(
     # Split the training dataset in half
     train_dataset, test_ds = dataset["train"], dataset["test"]
 
-    # weak labels path, it is None if training on ground truth
     if weak_labels_path is None:
         split_data = train_dataset.train_test_split(test_size=0.5, seed=seed)
         train1_ds, train2_ds = split_data["train"], split_data["test"]
@@ -298,8 +254,7 @@ def main(
             if result.returncode != 0:
                 raise RuntimeError(f"Sync command failed with return code {result.returncode}")
         train1_ds = load_from_disk(weak_labels_path)
-        # train2_ds = None
-        train2_ds = test_ds
+        train2_ds = None
 
         weak_model_config = json.load(open(weak_labels_path.replace("weak_labels", "config.json")))
         config["weak_model_size"] = weak_model_config["model_size"]
@@ -313,16 +268,12 @@ def main(
         sweep_subfolder=sweep_subfolder,
         config_name=config_name,
     )
-
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
-    print("Max context: {}.format(max_ctx)")
     train1_ds = tokenize_dataset(train1_ds, tokenizer, max_ctx)
     test_ds = tokenize_dataset(test_ds, tokenizer, max_ctx)
     if train2_ds:
         train2_ds = tokenize_dataset(train2_ds, tokenizer, max_ctx)
-
-    #### TRAINING, EVAL, AND SAVE ####
 
     loss_fn = loss_dict[loss]
     print(f"Training model model, size {model_size}")
@@ -332,21 +283,21 @@ def main(
         test_ds,
         inference_ds=train2_ds,
         batch_size=batch_size,
-        lr=lr,
-        epochs=epochs,
-        eval_batch_size=eval_batch_size,
-        minibatch_size_per_device=minibatch_size_per_device,
         save_path=save_path,
         loss_fn=loss_fn,
-        label="default",
+        lr=lr,
+        epochs=epochs,
         force_retrain=force_retrain,
+        eval_batch_size=eval_batch_size,
+        minibatch_size_per_device=minibatch_size_per_device,
         train_with_dropout=train_with_dropout,
         linear_probe=linear_probe,
         lr_schedule=lr_schedule,
         optimizer_name=optim,
         eval_every=eval_every,
-        strong_ckpt_path=strong_ckpt_path,
     )
+
+    torch.cuda.empty_cache()
 
     if weak_ds is not None:
         weak_ds.save_to_disk(save_path + "/" + "weak_labels")
