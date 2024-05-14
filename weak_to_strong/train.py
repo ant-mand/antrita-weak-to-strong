@@ -120,18 +120,16 @@ def train_model(
             eval_acc_dict[step] = eval_accs
             logger.logkv("eval_accuracy", eval_accs)
             
-            # Calculate and log validation (dev) loss
+            # Evaluate the model and calculate validation and test losses
             val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
-            print(
-                f"Recent validation losses: {val_loss}"
-            )
-            logger.logkv("validation_loss", val_loss)
-            
-            # Calculate and log test loss
             test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
-            print(
-                f"Recent test losses: {test_loss}"
-            )
+            
+            # Print validation and test losses
+            print(f"Recent validation losses: {val_loss}")
+            print(f"Recent test losses: {test_loss}")
+
+            # Log validation and test losses
+            logger.logkv("validation_loss", val_loss)
             logger.logkv("test_loss", test_loss)
         
         all_logits = []
