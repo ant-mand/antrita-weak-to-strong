@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch_optimizer as toptim
 from transformers.modeling_utils import load_sharded_checkpoint
+from torch.utils.data import DataLoader
 from safetensors.torch import load_model
 
 import weak_to_strong.logger as logger
@@ -41,6 +42,7 @@ def train_model(
     eval_batch_size: int = 256,
     minibatch_size: int = 8,
     eval_ds: Optional[datasets.Dataset] = None,
+    test_ds: Optional[datasets.Dataset] = None,
     gradient_checkpointing: bool = False,
     train_with_dropout: bool = False,
     epochs: int = 1,
@@ -49,13 +51,12 @@ def train_model(
 ):
     print("LR", lr, "batch_size", batch_size, "minibatch_size", minibatch_size)
     assert batch_size % minibatch_size == 0, "batch size must be divisible by minibatch size"
-    # we purposefully turn off dropout, for determinism
-    # this seems to help for 1 epoch finetuning anyways
+    
     if train_with_dropout:
         model.train()
     else:
         model.eval()
-
+    
     if gradient_checkpointing:
         (
             model if hasattr(model, "gradient_checkpointing_enable") else model.module
@@ -87,13 +88,23 @@ def train_model(
     accuracies = []
     eval_acc_dict = {}
 
-    # If the model is wrapped by DataParallel, it doesn't have a device. In this case,
-    # we use GPU 0 as the output device. This sadly means that this device will store
-    # a bit more data than other ones, but hopefully should not be too big of a deal.
-    # io_device = model.device if hasattr(model, "device") else 0
-
     io_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(io_device)
+
+    def calculate_loss(model, dataset, loss_fn, batch_size):
+        model.eval()
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+        total_loss = 0
+        count = 0
+        with torch.no_grad():
+            for batch in dataloader:
+                input_ids = batch["input_ids"].to(io_device)
+                labels = batch["soft_label"].to(io_device)
+                outputs = model(input_ids)
+                loss = loss_fn(outputs, labels)
+                total_loss += loss.item()
+                count += 1
+        return total_loss / count
 
     while step < nsteps:
         loss_tot = 0
@@ -108,6 +119,20 @@ def train_model(
             eval_accs = np.mean([r["acc"] for r in eval_results])
             eval_acc_dict[step] = eval_accs
             logger.logkv("eval_accuracy", eval_accs)
+            
+            # Calculate and log validation (dev) loss
+            val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
+            print(
+                f"Recent validation losses: {val_loss}"
+            )
+            logger.logkv("validation_loss", val_loss)
+            
+            # Calculate and log test loss
+            test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
+            print(
+                f"Recent test losses: {test_loss}"
+            )
+            logger.logkv("test_loss", test_loss)
         
         all_logits = []
         all_labels = []
@@ -127,7 +152,7 @@ def train_model(
 
             all_logits.extend(logits.to(io_device))
             all_labels.extend(labels)
-
+        
         all_logits = torch.stack(all_logits)
         all_labels = torch.stack(all_labels)
         loss = loss_fn(all_logits, all_labels, step_frac=step / nsteps)
@@ -155,14 +180,14 @@ def train_model(
         lr_scheduler.step()
         if log_every and step % log_every == 0:
             print(
-                f"Step: {step}/{nsteps} Recent losses: {np.mean(losses)} {np.mean(accuracies)} {len(losses)}"
+                f"Step: {step}/{nsteps} Recent training losses: {np.mean(losses)} {np.mean(accuracies)} {len(losses)}"
             )
             losses = []
             accuracies = []
         step += 1
         logger.dumpkvs()
         torch.cuda.empty_cache()
-
+    
     final_eval_results = None
     if eval_every:
         print("Final evaluation:")
@@ -268,6 +293,7 @@ def train_and_save_model(
             lr=lr,
             epochs=epochs,
             eval_ds=test_ds,
+            test_ds=inference_ds,
             gradient_checkpointing=gradient_checkpointing,
             loss_fn=loss_fn,
             eval_batch_size=eval_batch_size,
