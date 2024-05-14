@@ -15,7 +15,7 @@ from safetensors.torch import load_model
 import weak_to_strong.logger as logger
 from weak_to_strong.common import clear_mem
 from weak_to_strong.eval import eval_model_acc
-from weak_to_strong.loss import xent_loss
+from weak_to_strong.loss import xent_loss, logconf_loss_fn
 from weak_to_strong.model import TransformerWithHead
 
 
@@ -34,7 +34,7 @@ def train_model(
     model: torch.nn.Module,
     ds: datasets.Dataset,
     batch_size: int,
-    lr: float = 1e-5,
+    lr: float = 1e-05,
     loss_fn: Callable = xent_loss,
     log_every: int = 10,
     eval_every: int = 100,
@@ -55,6 +55,7 @@ def train_model(
         model.train()
     else:
         model.eval()
+
     if gradient_checkpointing:
         (
             model if hasattr(model, "gradient_checkpointing_enable") else model.module
@@ -74,10 +75,12 @@ def train_model(
         optimizer = toptim.Adafactor(model.parameters(), lr=lr)
     else:
         assert False, f"invalid optimizer {optimizer_name}, must be adam or adafactor"
+    
     if lr_schedule == "cosine_anneal":
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nsteps)
     else:
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_schedule_fn)
+    
     step = 0
     it = itertools.chain.from_iterable(itertools.repeat(ds, epochs))
     losses = []
@@ -87,7 +90,10 @@ def train_model(
     # If the model is wrapped by DataParallel, it doesn't have a device. In this case,
     # we use GPU 0 as the output device. This sadly means that this device will store
     # a bit more data than other ones, but hopefully should not be too big of a deal.
-    io_device = model.device if hasattr(model, "device") else 0
+    # io_device = model.device if hasattr(model, "device") else 0
+
+    io_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(io_device)
 
     while step < nsteps:
         loss_tot = 0
@@ -102,6 +108,7 @@ def train_model(
             eval_accs = np.mean([r["acc"] for r in eval_results])
             eval_acc_dict[step] = eval_accs
             logger.logkv("eval_accuracy", eval_accs)
+        
         all_logits = []
         all_labels = []
         for i in range(batch_size // minibatch_size):
@@ -111,10 +118,7 @@ def train_model(
                 break
             input_ids = (
                 torch.nn.utils.rnn.pad_sequence([torch.tensor(ex["input_ids"]) for ex in mbatch])
-                .transpose(
-                    0,
-                    1,
-                )
+                .transpose(0, 1)
                 .to(io_device)
             )
             labels = torch.tensor([ex["soft_label"] for ex in mbatch]).to(io_device)
@@ -123,6 +127,7 @@ def train_model(
 
             all_logits.extend(logits.to(io_device))
             all_labels.extend(labels)
+
         all_logits = torch.stack(all_logits)
         all_labels = torch.stack(all_labels)
         loss = loss_fn(all_logits, all_labels, step_frac=step / nsteps)
@@ -156,6 +161,8 @@ def train_model(
             accuracies = []
         step += 1
         logger.dumpkvs()
+        torch.cuda.empty_cache()
+
     final_eval_results = None
     if eval_every:
         print("Final evaluation:")
@@ -195,37 +202,26 @@ def train_and_save_model(
     gradient_checkpointing = model_config.gradient_checkpointing
     custom_kwargs = model_config.custom_kwargs or {}
 
-
     def maybe_load_model(model):
         print("Save path: {}".format(save_path))
         if os.path.exists(os.path.join(save_path, "results.txt")) and not force_retrain:
             print("loading from", save_path)
             checkpoint_path = os.path.join(save_path, "model.safetensors")
-            if not os.path.exists(checkpoint_path):
-                load_sharded_checkpoint(model, checkpoint_path)
-            else:
-                load_model(model, checkpoint_path)
-            return True
+            try:
+                if not os.path.exists(checkpoint_path):
+                    print("using load_sharded_checkpoint")
+                    load_sharded_checkpoint(model, checkpoint_path)
+                else:
+                    print("using load_model")
+                    state_dict = torch.load(checkpoint_path)
+                    model.load_state_dict(state_dict)
+                model.to("cuda")  # Ensure the model is on the correct device
+                return True
+            except Exception as e:
+                print(f"error loading model: {e}")
+                return False
         return False
     
-
-    # def maybe_load_model(model):
-    #     if os.path.exists(os.path.join(save_path, "results.txt")) and not force_retrain:
-    #         print("loading from", save_path)
-    #         checkpoint_path = os.path.join(save_path, "model.safetensors")
-    #         if not os.path.exists(checkpoint_path):
-    #             # Assume this means we have a sharded checkpoint, and load it appropriately
-    #             load_sharded_checkpoint(model, checkpoint_path)
-    #         else:
-    #             state_dict = torch.load(os.path.join(save_path, "model.safetensors"))
-    #             state_dict = {
-    #                 k.replace("transformer.module", "transformer"): v
-    #                 for (k, v) in state_dict.items()
-    #             }
-    #             custom_kwargs["state_dict"] = state_dict
-    #         return True
-    #     return False
-
     already_trained = False
     # Load the model
     if model_config.model_parallel:
@@ -237,6 +233,7 @@ def train_and_save_model(
             linear_probe=linear_probe,
             **custom_kwargs,
         )
+        model.to("cuda")
         already_trained = maybe_load_model(model)
         # slight misnomer, more like minibatch_size_per_dp_replica
         minibatch_size = minibatch_size_per_device
