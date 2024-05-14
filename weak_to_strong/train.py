@@ -30,6 +30,17 @@ class ModelConfig:
     model_parallel: bool = False
     default_optimizer: str = "adam"
 
+def pad_collate(batch):
+    """
+    Custom collate function to pad sequences to the same length within a batch.
+    """
+    input_ids = [torch.tensor(item["input_ids"]) for item in batch]
+    soft_labels = [torch.tensor(item["soft_label"]) for item in batch]
+
+    padded_input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True)
+    padded_soft_labels = torch.nn.utils.rnn.pad_sequence(soft_labels, batch_first=True)
+
+    return {"input_ids": padded_input_ids, "soft_label": padded_soft_labels}
 
 def train_model(
     model: torch.nn.Module,
@@ -89,27 +100,29 @@ def train_model(
     io_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(io_device)
 
-    def calculate_loss(model, dataset, loss_fn, batch_size):
-        if dataset is None or len(dataset) == 0:
-            return float('nan')
-        model.eval()
-        dataloader = DataLoader(dataset, batch_size=batch_size)
-        total_loss = 0
-        count = 0
-        with torch.no_grad():
-            for batch in dataloader:
-                input_ids = batch["input_ids"].to(io_device)
-                labels = batch["soft_label"].to(io_device)
-                outputs = model(input_ids)
-                loss = loss_fn(outputs, labels)
-                total_loss += loss.item()
-                count += 1
-        return total_loss / count if count > 0 else float('nan')
+    def calculate_loss(model, dataset, loss_fn, batch_size, step_frac=0):
+      if dataset is None or len(dataset) == 0:
+        return float('nan')
+
+      model.eval()
+      dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=pad_collate)
+      total_loss = 0
+      count = 0
+
+      with torch.no_grad():
+        for batch in dataloader:
+          input_ids = batch["input_ids"].to(io_device)
+          labels = batch["soft_label"].to(io_device)
+          outputs = model(input_ids)
+          loss = loss_fn(outputs, labels, step_frac)
+          total_loss += loss.item()
+          count += 1
+      return total_loss / count if count > 0 else float('nan')
 
     # Initialize val_loss and test_loss to None
     val_loss, test_loss = None, None
 
-while step < nsteps:
+    while step < nsteps:
         loss_tot = 0
         all_logits = []
         all_labels = []
@@ -155,17 +168,17 @@ while step < nsteps:
         if log_every and step % log_every == 0:
             # Calculate and print validation and test losses
             if eval_ds is not None:
-                val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
+                val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size, step_frac=step / nsteps)
             if test_ds is not None:
-                test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
+                test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size, step_frac=step / nsteps)
 
             print(
                 f"Step: {step}/{nsteps} Recent training losses: {np.mean(losses)} {np.mean(accuracies)} {len(losses)}"
             )
             if val_loss is not None:
-                print(f"Step: {step}/{nsteps} Recent validation loss: {val_loss}")
+                print(f"Step: {step}/{nsteps} Recent validation losses: {val_loss}")
             if test_loss is not None:
-                print(f"Step: {step}/{nsteps} Recent test loss: {test_loss}")
+                print(f"Step: {step}/{nsteps} Recent test losses: {test_loss}")
 
             losses = []
             accuracies = []
