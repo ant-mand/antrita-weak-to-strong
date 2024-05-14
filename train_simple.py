@@ -142,16 +142,16 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 8,
+    batch_size: int = 32,
     max_ctx: int = 1024,
-    ds_name: str = "sciq",
+    ds_name: str = "boolq",
     loss: str = "xent",
     n_docs: int = 20000,
     n_test_docs: int = 10000,
     model_size: str = "gpt2",
-    lr: Optional[float] = 1e-05,
+    lr: Optional[float] = 5e-05,
     optim: Optional[str] = None,
-    epochs: int = 1,
+    epochs: int = 2,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
