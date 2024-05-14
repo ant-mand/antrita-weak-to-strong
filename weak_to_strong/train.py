@@ -119,14 +119,10 @@ def train_model(
             eval_accs = np.mean([r["acc"] for r in eval_results])
             eval_acc_dict[step] = eval_accs
             logger.logkv("eval_accuracy", eval_accs)
-            
+
             # Evaluate the model and calculate validation and test losses
             val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
             test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
-            
-            # Print validation and test losses
-            print(f"Recent validation losses: {val_loss}")
-            print(f"Recent test losses: {test_loss}")
 
             # Log validation and test losses
             logger.logkv("validation_loss", val_loss)
@@ -180,6 +176,10 @@ def train_model(
             print(
                 f"Step: {step}/{nsteps} Recent training losses: {np.mean(losses)} {np.mean(accuracies)} {len(losses)}"
             )
+            # Print validation and test losses
+            print(f"Recent validation losses: {val_loss}")
+            print(f"Recent test losses: {test_loss}")
+
             losses = []
             accuracies = []
         step += 1
