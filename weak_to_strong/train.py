@@ -58,9 +58,7 @@ def train_model(
         model.eval()
     
     if gradient_checkpointing:
-        (
-            model if hasattr(model, "gradient_checkpointing_enable") else model.module
-        ).gradient_checkpointing_enable()
+        model.gradient_checkpointing_enable() if hasattr(model, "gradient_checkpointing_enable") else model.module.gradient_checkpointing_enable()
 
     nsteps = len(ds) * epochs // batch_size
 
@@ -92,6 +90,8 @@ def train_model(
     model = model.to(io_device)
 
     def calculate_loss(model, dataset, loss_fn, batch_size):
+        if dataset is None or len(dataset) == 0:
+            return float('nan')
         model.eval()
         dataloader = DataLoader(dataset, batch_size=batch_size)
         total_loss = 0
@@ -104,30 +104,13 @@ def train_model(
                 loss = loss_fn(outputs, labels)
                 total_loss += loss.item()
                 count += 1
-        return total_loss / count
+        return total_loss / count if count > 0 else float('nan')
 
-    while step < nsteps:
+    # Initialize val_loss and test_loss to None
+    val_loss, test_loss = None, None
+
+while step < nsteps:
         loss_tot = 0
-        if eval_every and (step + 1) % eval_every == 0:
-            eval_results = eval_model_acc(model, eval_ds, eval_batch_size)
-            if gradient_checkpointing:
-                (
-                    model if hasattr(model, "gradient_checkpointing_enable") else model.module
-                ).gradient_checkpointing_enable()
-            if train_with_dropout:
-                model.train()
-            eval_accs = np.mean([r["acc"] for r in eval_results])
-            eval_acc_dict[step] = eval_accs
-            logger.logkv("eval_accuracy", eval_accs)
-
-            # Evaluate the model and calculate validation and test losses
-            val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
-            test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
-
-            # Log validation and test losses
-            logger.logkv("validation_loss", val_loss)
-            logger.logkv("test_loss", test_loss)
-        
         all_logits = []
         all_labels = []
         for i in range(batch_size // minibatch_size):
@@ -135,18 +118,16 @@ def train_model(
                 mbatch = [next(it) for _ in range(minibatch_size)]
             except StopIteration:
                 break
-            input_ids = (
-                torch.nn.utils.rnn.pad_sequence([torch.tensor(ex["input_ids"]) for ex in mbatch])
-                .transpose(0, 1)
-                .to(io_device)
-            )
+            input_ids = torch.nn.utils.rnn.pad_sequence(
+                [torch.tensor(ex["input_ids"]) for ex in mbatch], batch_first=True
+            ).to(io_device)
             labels = torch.tensor([ex["soft_label"] for ex in mbatch]).to(io_device)
 
             logits = model(input_ids)
 
             all_logits.extend(logits.to(io_device))
             all_labels.extend(labels)
-        
+
         all_logits = torch.stack(all_logits)
         all_labels = torch.stack(all_labels)
         loss = loss_fn(all_logits, all_labels, step_frac=step / nsteps)
@@ -155,9 +136,7 @@ def train_model(
         losses.append(loss_tot)
         accuracies.append(
             torch.mean(
-                (torch.argmax(all_logits, dim=1) == torch.argmax(all_labels, dim=1)).to(
-                    torch.float32
-                )
+                (torch.argmax(all_logits, dim=1) == torch.argmax(all_labels, dim=1)).to(torch.float32)
             ).item()
         )
         logger.logkvs(
@@ -172,28 +151,38 @@ def train_model(
         optimizer.step()
         optimizer.zero_grad()
         lr_scheduler.step()
+
         if log_every and step % log_every == 0:
+            # Calculate and print validation and test losses
+            if eval_ds is not None:
+                val_loss = calculate_loss(model, eval_ds, loss_fn, eval_batch_size)
+            if test_ds is not None:
+                test_loss = calculate_loss(model, test_ds, loss_fn, eval_batch_size)
+
             print(
                 f"Step: {step}/{nsteps} Recent training losses: {np.mean(losses)} {np.mean(accuracies)} {len(losses)}"
             )
-            # Print validation and test losses
-            print(f"Recent validation losses: {val_loss}")
-            print(f"Recent test losses: {test_loss}")
+            if val_loss is not None:
+                print(f"Step: {step}/{nsteps} Recent validation loss: {val_loss}")
+            if test_loss is not None:
+                print(f"Step: {step}/{nsteps} Recent test loss: {test_loss}")
 
             losses = []
             accuracies = []
+        
         step += 1
         logger.dumpkvs()
         torch.cuda.empty_cache()
-    
+
     final_eval_results = None
-    if eval_every:
+    if eval_ds is not None:
         print("Final evaluation:")
         final_eval_results = eval_model_acc(model, eval_ds, eval_batch_size)
         logger.logkv("eval_accuracy", np.mean([r["acc"] for r in final_eval_results]))
         logger.dumpkvs()
+    
     return final_eval_results
-
+    
 
 def train_and_save_model(
     model_config: ModelConfig,
