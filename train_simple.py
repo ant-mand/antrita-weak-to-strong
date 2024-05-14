@@ -142,16 +142,16 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 32,
+    batch_size: int = 8,
     max_ctx: int = 1024,
     ds_name: str = "boolq",
     loss: str = "xent",
-    n_docs: int = 20000,
-    n_test_docs: int = 10000,
+    n_docs: int = 100,
+    n_test_docs: int = 40,
     model_size: str = "gpt2",
-    lr: Optional[float] = None,
+    lr: Optional[float] = 1e-05,
     optim: Optional[str] = None,
-    epochs: int = 2,
+    epochs: int = 1,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
@@ -296,6 +296,8 @@ def main(
         optimizer_name=optim,
         eval_every=eval_every,
     )
+
+    torch.cuda.empty_cache()
 
     if weak_ds is not None:
         weak_ds.save_to_disk(save_path + "/" + "weak_labels")
