@@ -27,13 +27,13 @@ def main(model_sizes: Union[List[str], str], **kwargs):
         for j in range(i, len(model_sizes)):
             weak_model_size = model_sizes[i]
             strong_model_size = model_sizes[j]
-            print(f"Running weak {weak_model_size} to strong {strong_model_size}")
-            subprocess.run(
-                basic_args
-                + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size],
-                check=True,
-            )
-
+            if weak_model_size != strong_model_size:
+                print(f"Running weak {weak_model_size} to strong {strong_model_size}")
+                subprocess.run(
+                    basic_args
+                    + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size],
+                    check=True,
+                )
 
 if __name__ == "__main__":
     fire.Fire(main)
