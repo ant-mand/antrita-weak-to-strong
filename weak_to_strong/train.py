@@ -52,8 +52,8 @@ def train_model(
     eval_every: int = 100,
     eval_batch_size: int = 256,
     minibatch_size: int = 8,
-    eval_ds: Optional[datasets.Dataset] = None,
-    test_ds: Optional[datasets.Dataset] = None,
+    eval_ds: Optional[datasets.Dataset] = None,  ## this is the validation dataset
+    test_ds: Optional[datasets.Dataset] = None,   ## this is the test dataset
     gradient_checkpointing: bool = False,
     train_with_dropout: bool = False,
     epochs: int = 1,
@@ -292,8 +292,8 @@ def train_and_save_model(
             batch_size,
             lr=lr,
             epochs=epochs,
-            eval_ds=test_ds,
-            test_ds=inference_ds,
+            eval_ds=inference_ds,
+            test_ds=test_ds,
             gradient_checkpointing=gradient_checkpointing,
             loss_fn=loss_fn,
             eval_batch_size=eval_batch_size,
