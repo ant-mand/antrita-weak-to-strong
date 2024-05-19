@@ -1,3 +1,11 @@
+**Antrita and Natalia's UPDATE**:
+
+We have made significant changes to the following files from OpenAI's original codebase:
+weak_to_strong/train.py, weak_to_strong/datasets.py, train_simple.py, and sweep.py, mainly for experimental and debugging purposes.
+
+Our goal was to 1. improve the performance-gap-recovered (PGR) by observing and changing relevant training dynamics of weak to strong generalization, 2. find ways to predict the PGR.
+
+
 **STATUS**: This codebase is not well tested and does not use the exact same settings we used in the paper, but in our experience gives qualitatively similar results when using large model size gaps and multiple seeds.  Expected results can be found for two datasets below.
 
 # Weak-to-strong generalization
