@@ -52,8 +52,8 @@ def train_model(
     eval_every: int = 100,
     eval_batch_size: int = 256,
     minibatch_size: int = 8,
-    eval_ds: Optional[datasets.Dataset] = None,  ## this is the validation dataset
-    test_ds: Optional[datasets.Dataset] = None,   ## this is the test dataset
+    eval_ds: Optional[datasets.Dataset] = None,  
+    test_ds: Optional[datasets.Dataset] = None,   
     gradient_checkpointing: bool = False,
     train_with_dropout: bool = False,
     epochs: int = 1,
@@ -188,10 +188,10 @@ def train_model(
         torch.cuda.empty_cache()
 
     final_eval_results = None
-    if eval_ds is not None:
+    if test_ds is not None:
         print("Final evaluation:")
-        final_eval_results = eval_model_acc(model, eval_ds, eval_batch_size)
-        logger.logkv("eval_accuracy", np.mean([r["acc"] for r in final_eval_results]))
+        final_eval_results = eval_model_acc(model, test_ds, eval_batch_size)
+        logger.logkv("test_accuracy", np.mean([r["acc"] for r in final_eval_results]))
         logger.dumpkvs()
     
     return final_eval_results
@@ -283,7 +283,6 @@ def train_and_save_model(
             minibatch_size = minibatch_size_per_device
 
     if already_trained:
-        print("test_ds:", test_ds)
         test_results = eval_model_acc(model, test_ds, eval_batch_size)
     else:
         start = time.time()
