@@ -169,7 +169,7 @@ def main(
     # Set to a very large value so that by default we don't do any intermediate evals but
     # still do final evals (which requires eval_every to be set to a non-zero, non-None value)
     eval_every: int = 1000000,
-    sync_command: Optional[str] = None,
+    sync_command: Optional[str] = None
 ):
     # this is per device!
     if minibatch_size_per_device is None:
@@ -268,6 +268,9 @@ def main(
         sweep_subfolder=sweep_subfolder,
         config_name=config_name,
     )
+
+    csv_path = os.path.join(save_path, "training_log.csv")
+
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
     train1_ds = tokenize_dataset(train1_ds, tokenizer, max_ctx)
@@ -295,6 +298,7 @@ def main(
         lr_schedule=lr_schedule,
         optimizer_name=optim,
         eval_every=eval_every,
+        csv_path=csv_path
     )
 
     torch.cuda.empty_cache()

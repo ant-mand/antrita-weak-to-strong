@@ -71,10 +71,14 @@ def train_model(
     epochs: int = 1,
     lr_schedule: str = "cosine_anneal",
     optimizer_name: str = "adam",
+    csv_path: Optional[str] = None
 ):
     print("LR", lr, "batch_size", batch_size, "minibatch_size", minibatch_size)
     assert batch_size % minibatch_size == 0, "batch size must be divisible by minibatch size"
     
+    if csv_path is not None:
+        initialize_csv(csv_path)  # initialize csv with csv path
+
     if train_with_dropout:
         model.train()
     else:
@@ -192,6 +196,9 @@ def train_model(
             if test_loss is not None:
                 print(f"Step: {step}/{nsteps} Recent test losses: {test_loss}")
 
+            if csv_path is not None:
+                write_to_csv(csv_path, step, step / nsteps, np.mean(losses), np.mean(accuracies), val_loss, test_loss, lr_scheduler.get_last_lr()[0])
+
             losses = []
             accuracies = []
         
@@ -229,6 +236,7 @@ def train_and_save_model(
     lr_schedule: str = "constant",
     optimizer_name: str = "adam",
     eval_every: Optional[int] = None,
+    csv_path: Optional[str] = None
 ):
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -314,6 +322,7 @@ def train_and_save_model(
             train_with_dropout=train_with_dropout,
             lr_schedule=lr_schedule,
             optimizer_name=optimizer_name,
+            csv_path=csv_path
         )
         print("Model training took", time.time() - start, "seconds")
         if save_path:
