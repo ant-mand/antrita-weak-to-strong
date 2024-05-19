@@ -142,16 +142,16 @@ def get_config_foldername(config: dict) -> str:
 
 
 def main(
-    batch_size: int = 32,
+    batch_size: int = 8,
     max_ctx: int = 1024,
     ds_name: str = "sciq",
     loss: str = "xent",
-    n_docs: int = 20000,
-    n_test_docs: int = 10000,
+    n_docs: int = 100,
+    n_test_docs: int = 40,
     model_size: str = "gpt2",
-    lr: Optional[float] = 5e-05,
+    lr: Optional[float] = 1e-05,
     optim: Optional[str] = None,
-    epochs: int = 2,
+    epochs: int = 1,
     force_retrain: bool = False,
     seed: int = 0,
     minibatch_size_per_device: Optional[float] = None,
@@ -254,7 +254,7 @@ def main(
             if result.returncode != 0:
                 raise RuntimeError(f"Sync command failed with return code {result.returncode}")
         train1_ds = load_from_disk(weak_labels_path)
-        train2_ds = None  ## currently, no validation dataset used for strong model learning
+        train2_ds = None  ## no validation dataset used for strong model learning
 
         weak_model_config = json.load(open(weak_labels_path.replace("weak_labels", "config.json")))
         config["weak_model_size"] = weak_model_config["model_size"]
@@ -303,8 +303,8 @@ def main(
         weak_ds.save_to_disk(save_path + "/" + "weak_labels")
 
     acc = np.mean([x["acc"] for x in test_results])
-    res_dict = {"accuracy": acc}
-    print("accuracy:", acc)
+    res_dict = {"test_results accuracy": acc}
+    print("test_results accuracy:", acc)
 
     with open(os.path.join(save_path, f"config.json"), "w") as f:
         json.dump(config, f, indent=2)

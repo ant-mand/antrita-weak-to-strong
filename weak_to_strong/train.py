@@ -283,6 +283,7 @@ def train_and_save_model(
             minibatch_size = minibatch_size_per_device
 
     if already_trained:
+        print("test_ds:", test_ds)
         test_results = eval_model_acc(model, test_ds, eval_batch_size)
     else:
         start = time.time()
