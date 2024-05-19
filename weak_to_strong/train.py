@@ -42,11 +42,23 @@ def pad_collate(batch):
 
     return {"input_ids": padded_input_ids, "soft_label": padded_soft_labels}
 
+def initialize_csv(file_path):
+    """ initialize csv file """
+    with open(file_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["step", "progress", "loss", "train_accuracy", "validation_loss", "test_loss", "lr"])
+
+def write_to_csv(file_path, step, progress, loss, train_accuracy, validation_loss, test_loss, lr):
+    """ write to a csv file """
+    with open(file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([step, progress, loss, train_accuracy, validation_loss, test_loss, lr])
+
 def train_model(
     model: torch.nn.Module,
     ds: datasets.Dataset,
     batch_size: int,
-    lr: float = 1e-05,
+    lr: float = 5e-05,
     loss_fn: Callable = xent_loss,
     log_every: int = 10,
     eval_every: int = 100,
@@ -189,7 +201,7 @@ def train_model(
 
     final_eval_results = None
     if test_ds is not None:
-        print("Final evaluation:")
+        print("Final evaluation (test_ds):")
         final_eval_results = eval_model_acc(model, test_ds, eval_batch_size)
         logger.logkv("test_accuracy", np.mean([r["acc"] for r in final_eval_results]))
         logger.dumpkvs()
@@ -313,6 +325,7 @@ def train_and_save_model(
 
     inference_results = None
     if inference_ds:
+        print("Inference accuracy:")
         inference_results = eval_model_acc(model, inference_ds, eval_batch_size)
         logger.logkv("inference_accuracy", np.mean([r["acc"] for r in inference_results]))
 
