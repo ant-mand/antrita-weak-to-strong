@@ -46,9 +46,9 @@ def initialize_csv(file_path):
     """ initialize csv file """
     with open(file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["step", "progress", "loss", "train_accuracy", "validation_loss", "test_loss", "lr"])
+        writer.writerow(["step", "progress", "train_loss", "train_accuracy", "validation_loss", "test_loss", "lr"])
 
-def write_to_csv(file_path, step, progress, loss, train_accuracy, validation_loss, test_loss, lr):
+def write_to_csv(file_path, step, progress, train_loss, train_accuracy, validation_loss, test_loss, lr):
     """ write to a csv file """
     with open(file_path, mode='a', newline='') as file:
         writer = csv.writer(file)

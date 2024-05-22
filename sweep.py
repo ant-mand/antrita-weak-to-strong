@@ -30,7 +30,7 @@ def main(model_sizes: Union[List[str], str], **kwargs):
             print(f"Running weak {weak_model_size} to strong {strong_model_size}")
             subprocess.run(
                 basic_args
-                + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size],
+                + ["--weak_model_size", weak_model_size, "--model_size", strong_model_size, "--use_pseudo_labels", "True"]],
                 check=True,
             )
 

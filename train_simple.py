@@ -4,6 +4,7 @@ import random
 import subprocess
 from typing import Dict, List, Optional
 
+import datasets
 import fire
 import numpy as np
 import torch
@@ -141,6 +142,25 @@ def get_config_foldername(config: dict) -> str:
     return "-".join(f"{shorten_key(k)}={shorten_value(v)}" for k, v in sorted(config.items()))
 
 
+def generate_pseudo_labels(
+    model: torch.nn.Module, 
+    ds: datasets.Dataset, 
+    tokenizer, 
+    threshold=0.9
+):
+    pseudo_labels = []
+    model.eval()
+    with torch.no_grad():
+        for example in inference_ds:
+            inputs = tokenizer(example["text"], return_tensors="pt", truncation=True, padding=True).to("cuda")
+            outputs = model(**inputs)
+            probs = torch.softmax(outputs.logits, dim=1)
+            if probs.max() > threshold:
+                pseudo_label = probs.argmax().item()
+                pseudo_labels.append({"input_ids": example["input_ids"], "soft_label": pseudo_label})
+    return pseudo_labels
+
+
 def main(
     batch_size: int = 32,
     max_ctx: int = 1024,
@@ -261,6 +281,17 @@ def main(
         config_name = get_config_foldername(config)
         config["weak_model"] = weak_model_config
 
+        weak_model = TransformerWithHead.from_pretrained(weak_model_config["model_size"], num_labels=2).to("cuda")
+        tokenizer = get_tokenizer(weak_model_config["model_size"])
+
+        # Generate pseudo-labels for train2_ds
+        pseudo_labels = generate_pseudo_labels(weak_model, train2_ds, tokenizer)
+
+        # Save pseudo-labels to a file
+        pseudo_labels_path = os.path.join(results_folder, "pseudo_labels.json")
+        with open(pseudo_labels_path, "w") as f:
+            json.dump(pseudo_labels, f)
+
     save_path = os.path.join(results_folder, sweep_subfolder, config_name)
     logger.configure(
         name="{sweep_subfolder}_{config_name}_{datetime_now}",
@@ -270,6 +301,8 @@ def main(
     )
 
     csv_path = os.path.join(save_path, "training_log.csv")
+    with open(os.path.join(save_path, "paths.json"), "w") as f:
+        json.dump({"csv_path": csv_path}, f)
 
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
