@@ -185,6 +185,7 @@ def main(
     # If you pass neither, we will train on ground truth.
     weak_model_size: Optional[str] = None,
     weak_labels_path: Optional[str] = None,
+    use_pseudo_labels: bool = False,  
     sweep_subfolder: str = "default",
     # Set to a very large value so that by default we don't do any intermediate evals but
     # still do final evals (which requires eval_every to be set to a non-zero, non-None value)
@@ -291,6 +292,13 @@ def main(
         pseudo_labels_path = os.path.join(results_folder, "pseudo_labels.json")
         with open(pseudo_labels_path, "w") as f:
             json.dump(pseudo_labels, f)
+
+        if (use_pseudo_labels):
+            pseudo_labels_path = os.path.join(results_folder, "pseudo_labels.json")
+            with open(pseudo_labels_path, "r") as f:
+                pseudo_labels = json.load(f)
+            pseudo_label_ds = datasets.Dataset.from_dict(pseudo_labels)
+            train1_ds = train1_ds.add_column("soft_label", pseudo_label_ds["soft_label"])
 
     save_path = os.path.join(results_folder, sweep_subfolder, config_name)
     logger.configure(
