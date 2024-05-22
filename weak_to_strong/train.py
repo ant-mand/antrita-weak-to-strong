@@ -42,17 +42,17 @@ def pad_collate(batch):
 
     return {"input_ids": padded_input_ids, "soft_label": padded_soft_labels}
 
-def initialize_csv(file_path):
-    """ initialize csv file """
-    with open(file_path, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["step", "progress", "train_loss", "train_accuracy", "validation_loss", "test_loss", "lr"])
+# def initialize_csv(file_path):
+#     """ initialize csv file """
+#     with open(file_path, mode='w', newline='') as file:
+#         writer = csv.writer(file)
+#         writer.writerow(["step", "progress", "train_loss", "train_accuracy", "validation_loss", "test_loss", "lr"])
 
-def write_to_csv(file_path, step, progress, train_loss, train_accuracy, validation_loss, test_loss, lr):
-    """ write to a csv file """
-    with open(file_path, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([step, progress, loss, train_accuracy, validation_loss, test_loss, lr])
+# def write_to_csv(file_path, step, progress, train_loss, train_accuracy, validation_loss, test_loss, lr):
+#     """ write to a csv file """
+#     with open(file_path, mode='a', newline='') as file:
+#         writer = csv.writer(file)
+#         writer.writerow([step, progress, loss, train_accuracy, validation_loss, test_loss, lr])
 
 def train_model(
     model: torch.nn.Module,
@@ -70,14 +70,13 @@ def train_model(
     train_with_dropout: bool = False,
     epochs: int = 1,
     lr_schedule: str = "cosine_anneal",
-    optimizer_name: str = "adam",
-    csv_path: Optional[str] = None
+    optimizer_name: str = "adam"
 ):
     print("LR", lr, "batch_size", batch_size, "minibatch_size", minibatch_size)
     assert batch_size % minibatch_size == 0, "batch size must be divisible by minibatch size"
     
-    if csv_path is not None:
-        initialize_csv(csv_path)  # initialize csv with csv path
+    # if csv_path is not None:
+    #     initialize_csv(csv_path)  # initialize csv with csv path
 
     if train_with_dropout:
         model.train()
@@ -196,8 +195,8 @@ def train_model(
             if test_loss is not None:
                 print(f"Step: {step}/{nsteps} Recent test losses: {test_loss}")
 
-            if csv_path is not None:
-                write_to_csv(csv_path, step, step / nsteps, np.mean(losses), np.mean(accuracies), val_loss, test_loss, lr_scheduler.get_last_lr()[0])
+            # if csv_path is not None:
+            #     write_to_csv(csv_path, step, step / nsteps, np.mean(losses), np.mean(accuracies), val_loss, test_loss, lr_scheduler.get_last_lr()[0])
 
             losses = []
             accuracies = []
@@ -235,8 +234,7 @@ def train_and_save_model(
     linear_probe: bool = False,
     lr_schedule: str = "constant",
     optimizer_name: str = "adam",
-    eval_every: Optional[int] = None,
-    csv_path: Optional[str] = None
+    eval_every: Optional[int] = None
 ):
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -321,8 +319,7 @@ def train_and_save_model(
             minibatch_size=minibatch_size,
             train_with_dropout=train_with_dropout,
             lr_schedule=lr_schedule,
-            optimizer_name=optimizer_name,
-            csv_path=csv_path
+            optimizer_name=optimizer_name
         )
         print("Model training took", time.time() - start, "seconds")
         if save_path:

@@ -308,9 +308,9 @@ def main(
         config_name=config_name,
     )
 
-    csv_path = os.path.join(save_path, "training_log.csv")
-    with open(os.path.join(save_path, "paths.json"), "w") as f:
-        json.dump({"csv_path": csv_path}, f)
+    # csv_path = os.path.join(save_path, "training_log.csv")
+    # with open(os.path.join(save_path, "paths.json"), "w") as f:
+    #     json.dump({"csv_path": csv_path}, f)
 
     # Tokenize datasets
     tokenizer = get_tokenizer(model_config.name)
@@ -338,8 +338,7 @@ def main(
         linear_probe=linear_probe,
         lr_schedule=lr_schedule,
         optimizer_name=optim,
-        eval_every=eval_every,
-        csv_path=csv_path
+        eval_every=eval_every
     )
 
     torch.cuda.empty_cache()
